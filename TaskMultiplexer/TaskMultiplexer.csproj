@@ -12,8 +12,8 @@
 		<Description>Task Multiplexer</Description>
 		<Copyright>Adamos Fiakkas</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageProjectUrl>https://github.com/fiakkasa/TaskMultiplexer</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/fiakkasa/TaskMultiplexer</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/fiakkasa/TaskMuxer</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/fiakkasa/TaskMuxer</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 	</PropertyGroup>
 	<ItemGroup>
