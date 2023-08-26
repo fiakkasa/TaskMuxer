@@ -14,7 +14,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     public InstanceTaskMultiplexer(ILoggerFactory loggerFactory) : this(loggerFactory.CreateLogger<InstanceTaskMultiplexer>()) { }
 
     public Task<long> ItemsCount(CancellationToken cancellationToken = default) => Task.FromResult(_items.LongCount());
-    
+
     public Task<ICollection<ItemKey>> ItemKeys(CancellationToken cancellationToken = default) => Task.FromResult(_items.Keys);
 
     private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
