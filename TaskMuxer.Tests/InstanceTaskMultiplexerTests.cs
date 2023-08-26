@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace TaskMultiplexer.Tests;
+namespace TaskMuxer.Tests;
 
 public class InstanceTaskMultiplexerTests
 {

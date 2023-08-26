@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace TaskMultiplexer;
+namespace TaskMuxer;
 
 public static class Extensions
 {

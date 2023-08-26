@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace TaskMultiplexer;
+namespace TaskMuxer;
 
 public class InstanceTaskMultiplexer : ITaskMultiplexer
 {

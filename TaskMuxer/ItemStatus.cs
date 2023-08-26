@@ -1,4 +1,4 @@
-﻿namespace TaskMultiplexer;
+﻿namespace TaskMuxer;
 
 public enum ItemStatus
 {

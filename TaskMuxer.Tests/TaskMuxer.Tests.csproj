@@ -21,6 +21,6 @@
 		</PackageReference>
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\TaskMultiplexer\TaskMultiplexer.csproj" />
+		<ProjectReference Include="..\TaskMuxer\TaskMuxer.csproj" />
 	</ItemGroup>
 </Project>

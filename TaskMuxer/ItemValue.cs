@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace TaskMultiplexer;
+namespace TaskMuxer;
 
 [ExcludeFromCodeCoverage]
 internal record ItemValue(object Value)

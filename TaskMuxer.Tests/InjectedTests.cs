@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TaskMultiplexer.Tests;
+namespace TaskMuxer.Tests;
 
 public class InjectedTests
 {
