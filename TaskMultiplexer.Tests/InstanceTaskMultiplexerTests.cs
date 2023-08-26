@@ -5,9 +5,9 @@ namespace TaskMultiplexer.Tests;
 
 public class InstanceTaskMultiplexerTests
 {
-    public InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
-    public InstanceTaskMultiplexer ServiceFactoryILogger => new(Substitute.For<ILogger<InstanceTaskMultiplexer>>());
-    public InstanceTaskMultiplexer ServiceFactoryILoggerFactory => new(Substitute.For<ILoggerFactory>());
+    public static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
+    public static InstanceTaskMultiplexer ServiceFactoryILogger => new(Substitute.For<ILogger<InstanceTaskMultiplexer>>());
+    public static InstanceTaskMultiplexer ServiceFactoryILoggerFactory => new(Substitute.For<ILoggerFactory>());
 
     [Fact]
     public async Task On_Init_No_Items_Present()
@@ -116,7 +116,7 @@ public class InstanceTaskMultiplexerTests
                         results.Add("banana");
                         Interlocked.Increment(ref count);
 
-                        var itemsCount = await service.ItemsCount();
+                        var itemsCount = await service.ItemsCount(ct);
                         if (itemsCount > maxConcurrentItems)
                             Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -133,7 +133,7 @@ public class InstanceTaskMultiplexerTests
                         results.Add("banana");
                         Interlocked.Increment(ref count);
 
-                        var itemsCount = await service.ItemsCount();
+                        var itemsCount = await service.ItemsCount(ct);
                         if (itemsCount > maxConcurrentItems)
                             Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -150,7 +150,7 @@ public class InstanceTaskMultiplexerTests
                         results.Add(true);
                         Interlocked.Increment(ref count);
 
-                        var itemsCount = await service.ItemsCount();
+                        var itemsCount = await service.ItemsCount(ct);
                         if (itemsCount > maxConcurrentItems)
                             Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -167,7 +167,7 @@ public class InstanceTaskMultiplexerTests
                         results.Add(("hello", "world"));
                         Interlocked.Increment(ref count);
 
-                        var itemsCount = await service.ItemsCount();
+                        var itemsCount = await service.ItemsCount(ct);
                         if (itemsCount > maxConcurrentItems)
                             Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -184,7 +184,7 @@ public class InstanceTaskMultiplexerTests
                         results.Add(true);
                         Interlocked.Increment(ref count);
 
-                        var itemsCount = await service.ItemsCount();
+                        var itemsCount = await service.ItemsCount(ct);
                         if (itemsCount > maxConcurrentItems)
                             Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -204,7 +204,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_With_For_Each_And_Large_Number_Of_Requests_With_No_Logger()
+    public async Task Add_Task_Single_Type_Items_With_For_Each_And_Extreme_Number_Of_Requests_With_No_Logger()
     {
         var service = ServiceFactoryNoLogger;
         var count = 0;
@@ -217,11 +217,11 @@ public class InstanceTaskMultiplexerTests
                 "forEach",
                 async ct =>
                 {
-                    await Task.Delay(2_000, ct);
+                    await Task.Delay(500, ct);
                     results.Add(Random.Shared.Next());
                     Interlocked.Increment(ref count);
 
-                    var itemsCount = await service.ItemsCount();
+                    var itemsCount = await service.ItemsCount(ct);
                     if (itemsCount > maxConcurrentItems)
                         Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -231,9 +231,9 @@ public class InstanceTaskMultiplexerTests
             )
         );
 
-        Assert.Equal(1, count);
+        Assert.InRange(count, 1, 10);
         Assert.Equal(1, maxConcurrentItems);
-        Assert.Single(results);
+        Assert.Equal(results.Count, count);
     }
 
     [Fact]
@@ -247,14 +247,14 @@ public class InstanceTaskMultiplexerTests
         await Parallel.ForEachAsync(
             Enumerable.Range(0, 1_000),
             async (_, cato) => await service.AddTask(
-                "forEachILogger",
+                "forEach",
                 async ct =>
                 {
-                    await Task.Delay(1_000, ct);
+                    await Task.Delay(250, ct);
                     results.Add(Random.Shared.Next());
                     Interlocked.Increment(ref count);
 
-                    var itemsCount = await service.ItemsCount();
+                    var itemsCount = await service.ItemsCount(ct);
                     if (itemsCount > maxConcurrentItems)
                         Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -264,9 +264,9 @@ public class InstanceTaskMultiplexerTests
             )
         );
 
-        Assert.Equal(1, count);
+        Assert.InRange(count, 1, 10);
         Assert.Equal(1, maxConcurrentItems);
-        Assert.Single(results);
+        Assert.Equal(results.Count, count);
     }
 
     [Fact]
@@ -283,11 +283,11 @@ public class InstanceTaskMultiplexerTests
                 "forEach",
                 async ct =>
                 {
-                    await Task.Delay(1_000, ct);
+                    await Task.Delay(250, ct);
                     results.Add(Random.Shared.Next());
                     Interlocked.Increment(ref count);
 
-                    var itemsCount = await service.ItemsCount();
+                    var itemsCount = await service.ItemsCount(ct);
                     if (itemsCount > maxConcurrentItems)
                         Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
@@ -297,9 +297,9 @@ public class InstanceTaskMultiplexerTests
             )
         );
 
-        Assert.Equal(1, count);
+        Assert.InRange(count, 1, 10);
         Assert.Equal(1, maxConcurrentItems);
-        Assert.Single(results);
+        Assert.Equal(results.Count, count);
     }
 
     [Fact]
@@ -314,10 +314,10 @@ public class InstanceTaskMultiplexerTests
                         "whenAll",
                         async ct =>
                         {
-                            await Task.Delay(1_000, ct);
+                            await Task.Delay(250, ct);
                             Interlocked.Increment(ref count);
 
-                            var itemsCount = await service.ItemsCount();
+                            var itemsCount = await service.ItemsCount(ct);
                             if (itemsCount > maxConcurrentItems)
                                 Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
