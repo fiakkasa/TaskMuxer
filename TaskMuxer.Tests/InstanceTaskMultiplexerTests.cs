@@ -17,6 +17,7 @@ public class InstanceTaskMultiplexerTests
         Assert.Equal(0, await service.ItemsCount());
         Assert.Empty(await service.ItemKeys());
         Assert.Equal(ItemStatus.None, await service.GetTaskStatus<int>("test"));
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(new("test", typeof(int))));
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Get_Task_Status()
+    public async Task Get_Task_Status_Generic()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<ItemStatus>();
@@ -88,6 +89,31 @@ public class InstanceTaskMultiplexerTests
             {
                 await Task.Delay(250);
                 results.Add(await service.GetTaskStatus<int>("status"));
+            })
+        );
+
+        Assert.Contains(ItemStatus.Started, results);
+    }
+
+    [Fact]
+    public async Task Get_Task_Status()
+    {
+        var service = ServiceFactoryNoLogger;
+        var results = new ConcurrentBag<ItemStatus>();
+
+        await Task.WhenAll(
+            service.AddTask(
+                "status",
+                async ct =>
+                {
+                    await Task.Delay(500, ct);
+                    return 1;
+                }
+            ),
+            Task.Run(async () =>
+            {
+                await Task.Delay(250);
+                results.Add(await service.GetTaskStatus(new("status", typeof(int))));
             })
         );
 

@@ -13,14 +13,19 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     public InstanceTaskMultiplexer(ILogger<InstanceTaskMultiplexer> logger) => _logger = logger;
     public InstanceTaskMultiplexer(ILoggerFactory loggerFactory) : this(loggerFactory.CreateLogger<InstanceTaskMultiplexer>()) { }
 
-    public Task<long> ItemsCount(CancellationToken cancellationToken = default) => Task.FromResult(_items.LongCount());
+    public Task<long> ItemsCount(CancellationToken cancellationToken = default) => 
+        Task.FromResult(_items.LongCount());
 
-    public Task<ICollection<ItemKey>> ItemKeys(CancellationToken cancellationToken = default) => Task.FromResult(_items.Keys);
+    public Task<ICollection<ItemKey>> ItemKeys(CancellationToken cancellationToken = default) => 
+        Task.FromResult(_items.Keys);
 
     private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
 
-    public Task<ItemStatus> GetTaskStatus<T>(string key, CancellationToken cancellationToken = default) => Task.FromResult(
-        _items.TryGetValue(GenerateKey<T>(key), out var itemValue) switch
+    public Task<ItemStatus> GetTaskStatus<T>(string key, CancellationToken cancellationToken = default) => 
+        GetTaskStatus(GenerateKey<T>(key), cancellationToken);
+
+    public Task<ItemStatus> GetTaskStatus(ItemKey key, CancellationToken cancellationToken = default) => Task.FromResult(
+        _items.TryGetValue(key, out var itemValue) switch
         {
             true => itemValue.Status,
             _ => ItemStatus.None
@@ -70,7 +75,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                 try
                 {
                     taskCompletionSource.SetResult(await func(cancellationToken));
-                    newItemValue.Status = ItemStatus.Success;
+                    newItemValue.Status = ItemStatus.Completed;
                 }
                 catch (TaskCanceledException ex)
                 {
@@ -94,7 +99,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                     Stopwatch.GetElapsedTime(startTimestamp),
                     newItemValue.Status switch
                     {
-                        ItemStatus.Success => "successfully",
+                        ItemStatus.Completed => "successfully",
                         _ => "unsuccessfully"
                     }
                 );

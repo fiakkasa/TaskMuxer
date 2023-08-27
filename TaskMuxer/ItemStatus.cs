@@ -7,7 +7,7 @@ public enum ItemStatus
     Added = 2,
     Starting = 3,
     Started = 4,
-    Success = 5,
+    Completed = 5,
     Failed = 6,
     Canceled = 7
 }
