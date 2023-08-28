@@ -71,7 +71,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Get_Task_Status_Generic()
+    public async Task Get_Task_Status()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<ItemStatus>();
@@ -96,7 +96,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Get_Task_Status()
+    public async Task Get_Task_Status_With_ItemKey()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<ItemStatus>();
@@ -119,6 +119,20 @@ public class InstanceTaskMultiplexerTests
 
         Assert.Contains(ItemStatus.Started, results);
     }
+
+    [Fact]
+    public async Task Add_Task_With_ItemKey() =>
+        Assert.Equal(
+            1,
+            await ServiceFactoryNoLogger.AddTask(
+                "status",
+                async ct =>
+                {
+                    await Task.Delay(500, ct);
+                    return 1;
+                }
+            )
+        );
 
     [Fact]
     public async Task Add_Task_Polymorphic_Items_With_Cancellation_Set_To_Expire_Before_Completion()
