@@ -290,7 +290,7 @@ public class InstanceTaskMultiplexerTests
                 "forEach",
                 async ct =>
                 {
-                    await Task.Delay(250, ct);
+                    await Task.Delay(1_000, ct);
                     results.Add(Random.Shared.Next());
                     Interlocked.Increment(ref count);
 
@@ -323,7 +323,7 @@ public class InstanceTaskMultiplexerTests
                 "forEach",
                 async ct =>
                 {
-                    await Task.Delay(250, ct);
+                    await Task.Delay(1_000, ct);
                     results.Add(Random.Shared.Next());
                     Interlocked.Increment(ref count);
 
@@ -354,7 +354,7 @@ public class InstanceTaskMultiplexerTests
                         "whenAll",
                         async ct =>
                         {
-                            await Task.Delay(250, ct);
+                            await Task.Delay(1_000, ct);
                             Interlocked.Increment(ref count);
 
                             var itemsCount = await service.ItemsCount(ct);
