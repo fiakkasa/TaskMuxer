@@ -6,7 +6,7 @@
 
 Task Multiplexer.
 
-The purpose of this package is to provide the ability to reduce the amount of parallel repetitive work in a thread safe manner.
+The purpose of this package is to provide the ability to reduce the amount of parallel repetitive work.
 
 In practical terms, imagine a service that requests data from a slow external API serving multiple requests in parallel.
 
@@ -65,6 +65,100 @@ public class ItemsCountService
             cancellationToken
         );
 }
+```
+
+### Thread Safety
+
+To achieve thread safety in cases like entity framework core accessing and / or writing data at the same time through parallel threads consider using [semaphores](https://learn.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim) or some other form of locking.
+
+ex.
+
+```csharp
+public record SampleEntity
+{
+    public int Id { get; set; }
+
+    public string Text { get; set; } = string.Empty;
+}
+
+public class SampleDataContext : DbContext
+{
+    public SampleDataContext(DbContextOptions<SampleDataContext> options) : base(options) { }
+
+    public DbSet<SampleEntity> Samples { get; set; } = default!;
+}
+
+public class SampleService
+{
+    readonly ITaskMultiplexer _taskMultiplexer;
+    readonly SampleDataContext _dbContext;
+
+    private SemaphoreSlim _semaphoreSlim = new(1);
+
+    public SampleService(ITaskMultiplexer taskMultiplexer, SampleDataContext dbContext) =>
+        (_taskMultiplexer, _dbContext) = (taskMultiplexer, dbContext);
+
+    public async Task<SampleEntity?> GetById(int id, CancellationToken cancellationToken = default) =>
+        await _taskMultiplexer.AddTask(
+            "get_by_id_with_semaphore",
+            async ct =>
+            {
+                await _semaphoreSlim.WaitAsync(ct);
+
+                try
+                {
+                    return await _dbContext.Samples.FirstOrDefaultAsync(x => x.Id == id, ct);
+                }
+                finally
+                {
+                    _semaphoreSlim.Release();
+                }
+            },
+            cancellationToken
+        );
+
+    public async Task<SampleEntity?> Add(SampleEntity obj, CancellationToken cancellationToken = default) =>
+        await _taskMultiplexer.AddTask(
+            "add_with_semaphore",
+            async ct =>
+            {
+                await _semaphoreSlim.WaitAsync(ct);
+
+                try
+                {
+                    _dbContext.Add(obj);
+                    await _dbContext.SaveChangesAsync(ct);
+                }
+                finally
+                {
+                    _semaphoreSlim.Release();
+                }
+
+                return obj;
+            },
+            cancellationToken
+        );
+}
+
+var service = new SampleService(
+    new InstanceTaskMultiplexer(),
+    new SampleDataContext(
+        new DbContextOptionsBuilder<SampleDataContext>()
+            .UseInMemoryDatabase("sample_database")
+            .Options
+    )
+);
+
+await Task.WhenAll(
+    service.GetById(1),
+    service.Add(
+        new()
+        {
+            Text = "Random " + Random.Shared.Next()
+        }
+    ),
+    service.GetById(1)
+);
 ```
 
 ## Similar Projects
