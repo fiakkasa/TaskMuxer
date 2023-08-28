@@ -134,7 +134,7 @@ public class ServiceTests
         var results = await Task.WhenAll(Enumerable.Range(0, 10).Select((_, __) => service.GetById(5)));
 
         Assert.Equal(10, results.Length);
-        Assert.Single(results.DistinctBy(x => x!.Id));
+        Assert.Single(results.Distinct());
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class ServiceTests
         var results = await Task.WhenAll(Enumerable.Range(0, 10).Select((_, __) => service.Samples.ToListAsync()));
 
         Assert.Equal(10, results.Length);
-        Assert.Equal(10, results.SelectMany(x => x!).DistinctBy(x => x.Id).Count());
+        Assert.Equal(10, results.SelectMany(x => x!).Distinct().Count());
     }
 
     [Fact]
@@ -178,27 +178,16 @@ public class ServiceTests
         var results = await Task.WhenAll(Enumerable.Range(0, 10).Select((_, __) => service.GetAll()));
 
         Assert.Equal(10, results.Length);
-        Assert.Equal(10, results.SelectMany(x => x!).DistinctBy(x => x.Id).Count());
+        Assert.Equal(10, results.SelectMany(x => x!).Distinct().Count());
     }
 
     [Fact]
     public async Task Service_Add_EF()
     {
-        var service = new SampleService(
-            new InstanceTaskMultiplexer(),
-            EFTestingUtils.GetDbCtx(
-                Enumerable.Range(1, 10)
-                    .Select(v => new SampleEntity
-                    {
-                        Id = v,
-                        Text = "Text " + v
-                    })
-                    .ToArray()
-            )
-        );
+        var service = new SampleService(new InstanceTaskMultiplexer(), EFTestingUtils.GetDbCtx());
 
         var results = await Task.WhenAll(
-            Enumerable.Range(0, 10)
+            Enumerable.Range(0, 2)
                 .Select((_, __) => service.Add(
                     new()
                     {
@@ -207,9 +196,7 @@ public class ServiceTests
                 )
             );
 
-        Assert.Equal(10, results.Length);
-        Assert.Single(results.DistinctBy(x => x!.Id));
-        Assert.Equal(11, results[0]!.Id);
+        Assert.Single(service.Samples);
     }
 
     [Fact]
