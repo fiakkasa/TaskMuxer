@@ -11,51 +11,54 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
     public InstanceTaskMultiplexer() { }
     public InstanceTaskMultiplexer(ILogger<InstanceTaskMultiplexer> logger) => _logger = logger;
-    public InstanceTaskMultiplexer(ILoggerFactory loggerFactory) : this(loggerFactory.CreateLogger<InstanceTaskMultiplexer>()) { }
+
+    private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
+
+    private T? GetItemValue<T>(ItemKey key) => _items.TryGetValue(key, out var item) switch
+    {
+        true when item.Value is T itemValue => itemValue,
+        _ => default
+    };
+
+    private ItemStatus GetItemStatus(ItemKey key) => _items.TryGetValue(key, out var item) switch
+    {
+        true => item.Status,
+        _ => default
+    };
+
+    private Task<T?>? GetItemTask<T>(ItemKey key) =>
+        GetItemValue<TaskCompletionSource<T?>>(key)?.Task;
 
     public Task<long> ItemsCount(CancellationToken cancellationToken = default) =>
-        Task.FromResult(_items.LongCount());
+        Task.FromResult((long)_items.Count);
 
     public Task<ICollection<ItemKey>> ItemKeys(CancellationToken cancellationToken = default) =>
         Task.FromResult(_items.Keys);
 
-    private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
-
     public Task<ItemStatus> GetTaskStatus<T>(string key, CancellationToken cancellationToken = default) =>
         GetTaskStatus(GenerateKey<T>(key), cancellationToken);
 
-    public Task<ItemStatus> GetTaskStatus(ItemKey key, CancellationToken cancellationToken = default) => Task.FromResult(
-        _items.TryGetValue(key, out var itemValue) switch
-        {
-            true => itemValue.Status,
-            _ => ItemStatus.None
-        }
-    );
+    public Task<ItemStatus> GetTaskStatus(ItemKey key, CancellationToken cancellationToken = default) =>
+        Task.FromResult(GetItemStatus(key));
 
-    public Task<bool> HasTask<T>(string key, CancellationToken cancellationToken = default) => 
+    public Task<bool> HasTask<T>(string key, CancellationToken cancellationToken = default) =>
         HasTask(GenerateKey<T>(key), cancellationToken);
 
-    public Task<bool> HasTask(ItemKey key, CancellationToken cancellationToken = default) => 
+    public Task<bool> HasTask(ItemKey key, CancellationToken cancellationToken = default) =>
         Task.FromResult(_items.ContainsKey(key));
 
-    public Task<Task<T?>?> GetTask<T>(string key, CancellationToken cancellationToken = default) => 
+    public Task<Task<T?>?> GetTask<T>(string key, CancellationToken cancellationToken = default) =>
         GetTask<T>(GenerateKey<T>(key), cancellationToken);
 
-    public Task<Task<T?>?> GetTask<T>(ItemKey key, CancellationToken cancellationToken = default) => 
-        Task.FromResult(GetTaskInternal<T>(key));
-
-    private Task<T?>? GetTaskInternal<T>(ItemKey key) => _items.TryGetValue(key, out var itemValue) switch
-    {
-        true when itemValue.Value is TaskCompletionSource<T?> tcs => tcs.Task,
-        _ => default
-    };
+    public Task<Task<T?>?> GetTask<T>(ItemKey key, CancellationToken cancellationToken = default) =>
+        Task.FromResult(GetItemTask<T>(key));
 
     public Task<T?> AddTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
         AddTask(GenerateKey<T>(key), func, cancellationToken);
 
     public Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default)
     {
-        if (GetTaskInternal<T>(key) is { } taskInstance)
+        if (GetItemTask<T>(key) is { } taskInstance)
         {
             _logger?.LogInformation("Request with key {Key} is already present in the items list and the existing instance will be returned instead", key);
 

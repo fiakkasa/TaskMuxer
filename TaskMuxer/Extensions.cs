@@ -12,5 +12,5 @@ public static class Extensions
         services.AddSingleton<ITaskMultiplexer>(sp => new InstanceTaskMultiplexer(sp.GetRequiredService<ILogger<InstanceTaskMultiplexer>>()));
 
     public static IServiceCollection AddInstanceTaskMultiplexerWithILoggerFactory(this IServiceCollection services) =>
-        services.AddSingleton<ITaskMultiplexer>(sp => new InstanceTaskMultiplexer(sp.GetRequiredService<ILoggerFactory>()));
+        services.AddSingleton<ITaskMultiplexer>(sp => new InstanceTaskMultiplexer(sp.GetRequiredService<ILoggerFactory>().CreateLogger<InstanceTaskMultiplexer>()));
 }

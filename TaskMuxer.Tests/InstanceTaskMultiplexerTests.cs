@@ -7,7 +7,6 @@ public class InstanceTaskMultiplexerTests
 {
     public static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
     public static InstanceTaskMultiplexer ServiceFactoryILogger => new(Substitute.For<ILogger<InstanceTaskMultiplexer>>());
-    public static InstanceTaskMultiplexer ServiceFactoryILoggerFactory => new(Substitute.For<ILoggerFactory>());
 
     [Fact]
     public async Task ItemsCount_When_No_Items_Present() =>
@@ -535,15 +534,15 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_And_Large_Number_Of_Requests_With_ILogger_Using_ParallelForEach()
+    public async Task Add_Task_Single_Type_Items_And_Extreme_Number_Of_Requests_With_No_Logger_Using_ParallelForEach()
     {
-        var service = ServiceFactoryILogger;
+        var service = ServiceFactoryNoLogger;
         var count = 0;
         var maxConcurrentItems = 0L;
         var results = new ConcurrentBag<int>();
 
         await Parallel.ForEachAsync(
-            Enumerable.Range(1, 1_000),
+            Enumerable.Range(1, 1_000_000),
             async (_, cato) => await service.AddTask(
                 "forEach",
                 async ct =>
@@ -552,11 +551,12 @@ public class InstanceTaskMultiplexerTests
                     if (itemsCount > maxConcurrentItems)
                         Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
-                    await Task.Delay(1_000, ct);
-                    results.Add(Random.Shared.Next());
+                    await Task.Delay(500, ct);
+                    var result = Random.Shared.Next();
+                    results.Add(result);
                     Interlocked.Increment(ref count);
 
-                    return 1;
+                    return result;
                 },
                 cato
             )
@@ -568,9 +568,9 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_And_Large_Number_Of_Requests_With_ILoggerFactory_Using_ParallelForEach()
+    public async Task Add_Task_Single_Type_Items_And_Large_Number_Of_Requests_With_ILogger_Using_ParallelForEach()
     {
-        var service = ServiceFactoryILoggerFactory;
+        var service = ServiceFactoryILogger;
         var count = 0;
         var maxConcurrentItems = 0L;
         var results = new ConcurrentBag<int>();
@@ -619,7 +619,7 @@ public class InstanceTaskMultiplexerTests
                             if (itemsCount > maxConcurrentItems)
                                 Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
 
-                            await Task.Delay(250, ct);
+                            await Task.Delay(500, ct);
                             Interlocked.Increment(ref count);
 
                             return Random.Shared.Next();
@@ -646,15 +646,6 @@ public class InstanceTaskMultiplexerTests
     public async Task Add_Task_Request_Throws_Exception_ILogger() =>
         await Assert.ThrowsAsync<Exception>(async () =>
             await ServiceFactoryILogger.AddTask<int>(
-                "exception",
-                _ => throw new Exception("Splash")
-            )
-        );
-
-    [Fact]
-    public async Task Add_Task_Request_Throws_Exception_ILoggerFactory() =>
-        await Assert.ThrowsAsync<Exception>(async () =>
-            await ServiceFactoryILoggerFactory.AddTask<int>(
                 "exception",
                 _ => throw new Exception("Splash")
             )
