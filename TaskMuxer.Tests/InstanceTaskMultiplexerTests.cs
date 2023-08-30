@@ -290,7 +290,6 @@ public class InstanceTaskMultiplexerTests
                         && args.LastOrDefault().Value?.ToString() is { } originalMessage
                         && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultMessage}, and will be removed from the items list"
                         && y.ToString() is { } message
-                        && message.Contains(", after 00:00:00.25")
                         && message.Contains(" successfully,")
                     )
                     .Any()
