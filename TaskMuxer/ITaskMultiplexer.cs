@@ -9,6 +9,14 @@ public interface ITaskMultiplexer
     Task<ItemStatus> GetTaskStatus<T>(string key, CancellationToken cancellationToken = default);
 
     Task<ItemStatus> GetTaskStatus(ItemKey key, CancellationToken cancellationToken = default);
+    
+    Task<bool> HasTask<T>(string key, CancellationToken cancellationToken = default);
+
+    Task<bool> HasTask(ItemKey key, CancellationToken cancellationToken = default);
+    
+    Task<Task<T?>?> GetTask<T>(string key, CancellationToken cancellationToken = default);
+
+    Task<Task<T?>?> GetTask<T>(ItemKey key, CancellationToken cancellationToken = default);
 
     Task<T?> AddTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default);
 

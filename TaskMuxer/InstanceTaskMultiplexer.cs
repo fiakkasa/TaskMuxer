@@ -32,11 +32,36 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         }
     );
 
+    public Task<bool> HasTask<T>(string key, CancellationToken cancellationToken = default) => 
+        HasTask(GenerateKey<T>(key), cancellationToken);
+
+    public Task<bool> HasTask(ItemKey key, CancellationToken cancellationToken = default) => 
+        Task.FromResult(_items.ContainsKey(key));
+
+    public Task<Task<T?>?> GetTask<T>(string key, CancellationToken cancellationToken = default) => 
+        GetTask<T>(GenerateKey<T>(key), cancellationToken);
+
+    public Task<Task<T?>?> GetTask<T>(ItemKey key, CancellationToken cancellationToken = default) => 
+        Task.FromResult(GetTaskInternal<T>(key));
+
+    private Task<T?>? GetTaskInternal<T>(ItemKey key) => _items.TryGetValue(key, out var itemValue) switch
+    {
+        true when itemValue.Value is TaskCompletionSource<T?> tcs => tcs.Task,
+        _ => default
+    };
+
     public Task<T?> AddTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
         AddTask(GenerateKey<T>(key), func, cancellationToken);
 
     public Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default)
     {
+        if (GetTaskInternal<T>(key) is { } taskInstance)
+        {
+            _logger?.LogInformation("Request with key {Key} is already present in the items list and the existing instance will be returned instead", key);
+
+            return taskInstance;
+        }
+
         var taskCompletionSource = new TaskCompletionSource<T?>();
         var newItemValue = new ItemValue(taskCompletionSource)
         {
@@ -45,13 +70,9 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
         if (!_items.TryAdd(key, newItemValue))
         {
-            _items.TryGetValue(key, out var itemValue);
+            _logger?.LogWarning("Request with key {Key} was not added in the items list", key);
 
-            var taskInstance = ((TaskCompletionSource<T?>)itemValue!.Value).Task;
-
-            _logger?.LogInformation("Request with key {Key} is already present in the items list and the existing instance will be returned instead", key);
-
-            return taskInstance;
+            return Task.FromResult(default(T?));
         }
 
         newItemValue.Status = ItemStatus.Added;
@@ -107,7 +128,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                 );
 
                 _logger?.LogInformation("Number of items remaining in the list: {Count}", _items.Count);
-            }, CancellationToken.None);
+            }, cancellationToken);
         }
     }
 }
