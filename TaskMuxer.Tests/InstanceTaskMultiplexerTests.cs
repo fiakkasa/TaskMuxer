@@ -651,13 +651,33 @@ public class InstanceTaskMultiplexerTests
         );
 
     [Fact]
-    public async Task Add_Task_Request_Cancelled()
+    public async Task Add_Task_Request_Cancelled_No_Logger()
     {
         var cts = new CancellationTokenSource();
         cts.CancelAfter(100);
 
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await ServiceFactoryNoLogger.AddTask(
+                "cancelled",
+                async ct =>
+                {
+                    await Task.Delay(1_000, ct);
+
+                    return 1;
+                },
+                cts.Token
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Add_Task_Request_Cancelled_ILogger()
+    {
+        var cts = new CancellationTokenSource();
+        cts.CancelAfter(100);
+
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await ServiceFactoryILogger.AddTask(
                 "cancelled",
                 async ct =>
                 {
