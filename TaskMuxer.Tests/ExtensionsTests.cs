@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace TaskMuxer.Tests;
 
@@ -38,7 +39,33 @@ public class ExtensionsTests
         );
 
     [Fact]
-    public async Task Register_InstanceTaskMultiplexer_With_Options_And_No_Logger()
+    public async Task Register_InstanceTaskMultiplexer_With_Options_Fails_When_Invalid_Config_NoLogger() =>
+        await Assert.ThrowsAsync<OptionsValidationException>(async () =>
+            await new HostBuilder()
+                .ConfigureWebHost(webBuilder =>
+                    webBuilder
+                        .UseTestServer()
+                        .ConfigureAppConfiguration(config =>
+                            config.AddToConfigBuilder(
+                                new Dictionary<string, object>()
+                                {
+                                    [nameof(InstanceTaskMultiplexerConfig)] = new InstanceTaskMultiplexerConfig
+                                    {
+                                        ExecutionTimeout = TimeSpan.Zero
+                                    }
+                                }
+                            )
+                        )
+                        .ConfigureServices(services =>
+                            services.AddInstanceTaskMultiplexerWithOptionsAndNoLogger()
+                        )
+                        .Configure(_ => { })
+            )
+            .StartAsync()
+        );
+
+    [Fact]
+    public async Task Register_InstanceTaskMultiplexer_With_Custom_Options_Section_And_No_Logger()
     {
         using var host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
@@ -48,18 +75,31 @@ public class ExtensionsTests
                         config.AddToConfigBuilder(
                             new Dictionary<string, object>()
                             {
-                                [nameof(InstanceTaskMultiplexer)] = new InstanceTaskMultiplexer()
+                                ["ITMC"] = new InstanceTaskMultiplexerConfig
+                                {
+                                    ExecutionTimeout = TimeSpan.FromMilliseconds(250)
+                                }
                             }
                         )
                     )
                     .ConfigureServices(services =>
-                        services.AddInstanceTaskMultiplexerWithOptionsAndNoLogger()
+                        services.AddInstanceTaskMultiplexerWithOptionsAndNoLogger("ITMC")
                     )
                     .Configure(_ => { })
            )
            .StartAsync();
 
-        Assert.IsAssignableFrom<ITaskMultiplexer>(host.Services.GetRequiredService<ITaskMultiplexer>());
+        var service = host.Services.GetRequiredService<ITaskMultiplexer>();
+        Assert.IsAssignableFrom<ITaskMultiplexer>(service);
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await service.AddTask(
+            "test",
+            async (ct) =>
+            {
+                await Task.Delay(1_000, ct);
+
+                return 1;
+            })
+        );
     }
 
     [Fact]
@@ -73,7 +113,7 @@ public class ExtensionsTests
                         config.AddToConfigBuilder(
                             new Dictionary<string, object>()
                             {
-                                [nameof(InstanceTaskMultiplexer)] = new InstanceTaskMultiplexer()
+                                [nameof(InstanceTaskMultiplexerConfig)] = new InstanceTaskMultiplexerConfig()
                             }
                         )
                     )
@@ -98,7 +138,7 @@ public class ExtensionsTests
                         config.AddToConfigBuilder(
                             new Dictionary<string, object>()
                             {
-                                [nameof(InstanceTaskMultiplexer)] = new InstanceTaskMultiplexer()
+                                [nameof(InstanceTaskMultiplexerConfig)] = new InstanceTaskMultiplexerConfig()
                             }
                         )
                     )
