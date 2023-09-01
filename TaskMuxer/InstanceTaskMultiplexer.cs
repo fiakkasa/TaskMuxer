@@ -7,33 +7,45 @@ namespace TaskMuxer;
 
 public class InstanceTaskMultiplexer : ITaskMultiplexer
 {
-    private readonly ConcurrentDictionary<ItemKey, ItemValue> _items = new();
+    private readonly ConcurrentDictionary<ItemKey, InstanceItem> _items = new();
     private readonly ILogger<InstanceTaskMultiplexer>? _logger;
 
     public InstanceTaskMultiplexer() { }
-    public InstanceTaskMultiplexer(ILogger<InstanceTaskMultiplexer> logger) => 
+    public InstanceTaskMultiplexer(ILogger<InstanceTaskMultiplexer> logger) =>
         _logger = logger;
 
-    private void LogInformation(string? message, params object[] args) => 
+    private void LogInformation(string? message, params object[] args) =>
         _logger?.LogInformation(message, args);
 
-    private void LogWarning(Exception? exception, string? message, params object[] args) => 
+    private void LogWarning(Exception? exception, string? message, params object[] args) =>
         _logger?.LogWarning(exception, message, args);
 
-    private void LogError(Exception? exception, string? message, params object[] args) => 
+    private void LogError(Exception? exception, string? message, params object[] args) =>
         _logger?.LogError(exception, message, args);
 
     private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
 
-    private T? GetItemValue<T>(ItemKey key) => _items.TryGetValue(key, out var item) switch
+    private InstanceItem? GetItem(ItemKey key) => _items.TryGetValue(key, out var item) switch
     {
-        true when item.Value is T itemValue => itemValue,
+        true => item,
         _ => default
     };
 
-    private ItemStatus GetItemStatus(ItemKey key) => _items.TryGetValue(key, out var item) switch
+    private T? GetItemValue<T>(ItemKey key) => GetItem(key) switch
     {
-        true => item.Status,
+        { } item when item.Value is T itemValue => itemValue,
+        _ => default
+    };
+
+    private CancellationTokenSource? GetItemInternalCancellationSource<T>(ItemKey key) => GetItem(key) switch
+    {
+        { } item => item.InternalCancellationSource,
+        _ => default
+    };
+
+    private ItemStatus GetItemStatus(ItemKey key) => GetItem(key) switch
+    {
+        { } item => item.Status,
         _ => default
     };
 
@@ -64,6 +76,23 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     public Task<Task<T?>?> GetTask<T>(ItemKey key, CancellationToken cancellationToken = default) =>
         Task.FromResult(GetItemTask<T>(key));
 
+    public Task<bool> CancelTask<T>(string key, CancellationToken cancellationToken = default) =>
+        CancelTask<T>(GenerateKey<T>(key), cancellationToken);
+
+    public async Task<bool> CancelTask<T>(ItemKey key, CancellationToken cancellationToken = default)
+    {
+        var cts = GetItemInternalCancellationSource<T>(key);
+
+        if (cts is not { }) return false;
+
+        cts.Cancel();
+
+        while (GetItem(key) is { })
+            await Task.Delay(250);
+
+        return true;
+    }
+
     public Task<T?> AddTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
         AddTask(GenerateKey<T>(key), func, cancellationToken);
 
@@ -72,7 +101,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         if (GetItemTask<T>(key) is { } taskInstance)
         {
             LogInformation(
-                "Request with key {Key} is already present in the items list and the existing instance will be returned instead", 
+                "Request with key {Key} is already present in the items list and the existing instance will be returned instead",
                 key
             );
 
@@ -80,18 +109,22 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         }
 
         var taskCompletionSource = new TaskCompletionSource<T?>();
-        var newItemValue = new ItemValue(taskCompletionSource)
+        var internalCancellationTokenSource = new CancellationTokenSource();
+        var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(internalCancellationTokenSource.Token, cancellationToken);
+        var newItemValue = new InstanceItem(
+            Value: taskCompletionSource,
+            InternalCancellationSource: internalCancellationTokenSource,
+            LinkedCancellationTokenSource: linkedCancellationTokenSource
+        )
         {
             Status = ItemStatus.Created
         };
 
         if (!_items.TryAdd(key, newItemValue))
         {
-            LogWarning(
-                new DataException($"Request with key {key} was not added in the items list"), 
-                "Request with key {Key} was not added in the items list", 
-                key
-            );
+            LogWarning(default, "Request with key {Key} was not added in the items list", key);
+
+            linkedCancellationTokenSource.Dispose();
 
             return Task.FromResult(default(T?));
         }
@@ -118,14 +151,24 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
                 try
                 {
-                    taskCompletionSource.SetResult(await func(cancellationToken));
+                    taskCompletionSource.SetResult(await func(linkedCancellationTokenSource.Token));
                     newItemValue.Status = ItemStatus.Completed;
                 }
                 catch (TaskCanceledException ex)
                 {
                     newItemValue.Status = ItemStatus.Canceled;
-                    taskCompletionSource.SetCanceled(cancellationToken);
-                    LogWarning(ex, "Request with key {Key}, was cancelled with message: {Message}", key, ex.Message);
+                    taskCompletionSource.SetCanceled(linkedCancellationTokenSource.Token);
+                    LogWarning(
+                        ex,
+                        "Request with key {Key}, was cancelled by {CancellationSource} cancellation source, with message: {Message}",
+                        key,
+                        internalCancellationTokenSource.Token.IsCancellationRequested switch
+                        {
+                            true => "internal",
+                            _ => "external"
+                        },
+                        ex.Message
+                    );
                 }
                 catch (Exception ex)
                 {
@@ -134,6 +177,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                     taskCompletionSource.SetException(ex);
                 }
 
+                linkedCancellationTokenSource.Dispose();
                 _items.TryRemove(key, out var _);
 
                 LogInformation(
@@ -149,7 +193,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                 );
 
                 LogInformation("Number of items remaining in the list: {Count}", _items.Count);
-            }, cancellationToken);
+            }, linkedCancellationTokenSource.Token);
         }
     }
 }

@@ -7,7 +7,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
 		<PackageId>$(MSBuildProjectName)</PackageId>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<Authors>Adamos Fiakkas</Authors>
 		<Description>Task Multiplexer</Description>
 		<Copyright>Adamos Fiakkas</Copyright>
