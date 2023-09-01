@@ -25,6 +25,9 @@ Locate the services registration and append one of:
 - `.AddInstanceTaskMultiplexerNoLogger` - use when no logging is required
 - `.AddInstanceTaskMultiplexerWithILogger` - use when the ILogger provider is available
 - `.AddInstanceTaskMultiplexerWithILoggerFactory` - use when the ILoggerFactory provider is available
+- `.AddInstanceTaskMultiplexerWithOptionsAndNoLogger` - use when no logging is required and options are defined
+- `.AddInstanceTaskMultiplexerWithOptionsAndILogger` - use when the ILogger provider is available and options are defined
+- `.AddInstanceTaskMultiplexerWithOptionsAndILoggerFactory` - use when the ILoggerFactory provider is available and options are defined
 
 ex.
 

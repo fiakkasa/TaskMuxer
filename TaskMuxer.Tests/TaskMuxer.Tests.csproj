@@ -8,6 +8,8 @@
 		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
 	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.10" />
+		<PackageReference Include="Microsoft.AspNetCore.TestHost" Version="7.0.10" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="7.0.10" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />

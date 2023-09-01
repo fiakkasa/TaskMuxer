@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Data;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
@@ -9,10 +8,11 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 {
     private readonly ConcurrentDictionary<ItemKey, InstanceItem> _items = new();
     private readonly ILogger<InstanceTaskMultiplexer>? _logger;
+    private readonly InstanceTaskMultiplexerConfig? _config;
 
     public InstanceTaskMultiplexer() { }
-    public InstanceTaskMultiplexer(ILogger<InstanceTaskMultiplexer> logger) =>
-        _logger = logger;
+    public InstanceTaskMultiplexer(InstanceTaskMultiplexerConfig? config = default, ILogger<InstanceTaskMultiplexer>? logger = default) =>
+        (_config, _logger) = (config, logger);
 
     private void LogInformation(string? message, params object[] args) =>
         _logger?.LogInformation(message, args);
@@ -24,6 +24,16 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         _logger?.LogError(exception, message, args);
 
     private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
+
+    private CancellationTokenSource GenerateInternalCancellationTokenSource()
+    {
+        var result = new CancellationTokenSource();
+
+        if (_config?.ExecutionTimeout is { } ExecutionTimeout && ExecutionTimeout > TimeSpan.Zero)
+            result.CancelAfter(ExecutionTimeout);
+
+        return result;
+    }
 
     private InstanceItem? GetItem(ItemKey key) => _items.TryGetValue(key, out var item) switch
     {
@@ -109,7 +119,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         }
 
         var taskCompletionSource = new TaskCompletionSource<T?>();
-        var internalCancellationTokenSource = new CancellationTokenSource();
+        var internalCancellationTokenSource = GenerateInternalCancellationTokenSource();
         var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(internalCancellationTokenSource.Token, cancellationToken);
         var newItemValue = new InstanceItem(
             Value: taskCompletionSource,

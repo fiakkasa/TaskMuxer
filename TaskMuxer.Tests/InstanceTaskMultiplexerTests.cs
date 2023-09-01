@@ -6,7 +6,20 @@ namespace TaskMuxer.Tests;
 public class InstanceTaskMultiplexerTests
 {
     public static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
-    public static InstanceTaskMultiplexer ServiceFactoryILogger => new(Substitute.For<ILogger<InstanceTaskMultiplexer>>());
+    public static InstanceTaskMultiplexer ServiceFactoryILogger => new(logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>());
+    public static InstanceTaskMultiplexer ServiceFactoryOptionsNoLogger => new(
+        config: new()
+        {
+            ExecutionTimeout = TimeSpan.FromMilliseconds(250),
+        }
+    );
+    public static InstanceTaskMultiplexer ServiceFactoryOptionsILogger => new(
+        config: new()
+        {
+            ExecutionTimeout = TimeSpan.FromMilliseconds(250),
+        },
+        logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
+    );
 
     [Fact]
     public async Task ItemsCount_When_No_Items_Present() =>
@@ -306,7 +319,7 @@ public class InstanceTaskMultiplexerTests
     public async Task Add_Task_With_Key_Logs()
     {
         var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
-        var service = new InstanceTaskMultiplexer(logger);
+        var service = new InstanceTaskMultiplexer(logger: logger);
         var key = new ItemKey("log", typeof(int));
 
         Assert.Equal(
@@ -750,4 +763,47 @@ public class InstanceTaskMultiplexerTests
             )
         );
     }
+
+    [Fact]
+    public async Task Add_Task_Request_Not_Cancelled_By_ExecutionTimeout_NoLogger() =>
+        Assert.Equal(
+            1,
+            await new InstanceTaskMultiplexer(config: new() { ExecutionTimeout = TimeSpan.Zero }).AddTask(
+                "not_cancelled",
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+
+                    return 1;
+                }
+            )
+        );
+
+    [Fact]
+    public async Task Add_Task_Request_Cancelled_By_ExecutionTimeout_NoLogger() =>
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await ServiceFactoryOptionsNoLogger.AddTask(
+                "cancelled",
+                async ct =>
+                {
+                    await Task.Delay(1_000, ct);
+
+                    return 1;
+                }
+            )
+        );
+
+    [Fact]
+    public async Task Add_Task_Request_Cancelled_By_ExecutionTimeout_ILogger() =>
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await ServiceFactoryOptionsILogger.AddTask(
+                "cancelled",
+                async ct =>
+                {
+                    await Task.Delay(1_000, ct);
+
+                    return 1;
+                }
+            )
+        );
 }
