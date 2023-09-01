@@ -31,7 +31,7 @@ public static class Extensions
     public static IServiceCollection AddInstanceTaskMultiplexerWithOptionsAndILogger(this IServiceCollection services, string? sectionKey = default) =>
         services
             .AddValidatedOptions<InstanceTaskMultiplexerConfig>(sectionKey)
-            .AddSingleton<ITaskMultiplexer>(sp => 
+            .AddSingleton<ITaskMultiplexer>(sp =>
                 new InstanceTaskMultiplexer(
                     config: sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue,
                     logger: sp.GetRequiredService<ILogger<InstanceTaskMultiplexer>>()
@@ -41,7 +41,7 @@ public static class Extensions
     public static IServiceCollection AddInstanceTaskMultiplexerWithOptionsAndILoggerFactory(this IServiceCollection services, string? sectionKey = default) =>
         services
             .AddValidatedOptions<InstanceTaskMultiplexerConfig>(sectionKey)
-            .AddSingleton<ITaskMultiplexer>(sp => 
+            .AddSingleton<ITaskMultiplexer>(sp =>
                 new InstanceTaskMultiplexer(
                     config: sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue,
                     logger: sp.GetRequiredService<ILoggerFactory>().CreateLogger<InstanceTaskMultiplexer>()
