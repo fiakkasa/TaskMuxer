@@ -7,26 +7,13 @@ public class InstanceTaskMultiplexerTests
 {
     public static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
     public static InstanceTaskMultiplexer ServiceFactoryILogger => new(logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>());
-    public static InstanceTaskMultiplexer ServiceFactoryOptionsNoLogger => new(
-        config: new()
-        {
-            ExecutionTimeout = TimeSpan.FromMilliseconds(250),
-        }
-    );
-    public static InstanceTaskMultiplexer ServiceFactoryOptionsILogger => new(
-        config: new()
-        {
-            ExecutionTimeout = TimeSpan.FromMilliseconds(250),
-        },
-        logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
-    );
 
     [Fact]
-    public async Task ItemsCount_When_No_Items_Present() =>
+    public async Task ItemsCount_When_No_Items_Present_Returns_Zero() =>
         Assert.Equal(0, await ServiceFactoryNoLogger.ItemsCount());
 
     [Fact]
-    public async Task ItemsCount_When_Items_Present()
+    public async Task ItemsCount_When_Items_Present_Returns_Count()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<long>();
@@ -51,11 +38,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task ItemKeys_When_No_Items_Present() =>
+    public async Task ItemKeys_When_No_Items_Present_Returns_Empty() =>
         Assert.Empty(await ServiceFactoryNoLogger.ItemKeys());
 
     [Fact]
-    public async Task ItemKeys_When_Items_Present()
+    public async Task ItemKeys_When_Items_Present_Returns_Collection()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<ItemKey>();
@@ -80,11 +67,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Get_Task_Status_With_Key_When_Item_Does_Not_Exist() =>
+    public async Task Get_Task_Status_With_Key_When_Item_Does_Not_Exist_Returns_None() =>
         Assert.Equal(ItemStatus.None, await ServiceFactoryNoLogger.GetTaskStatus<int>("status"));
 
     [Fact]
-    public async Task Get_Task_Status_With_Key_When_Item_Exists()
+    public async Task Get_Task_Status_With_Key_When_Item_Exists_Returns_Status()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<ItemStatus>();
@@ -109,11 +96,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Get_Task_Status_With_ItemKey_When_Item_Does_Not_Exist() =>
+    public async Task Get_Task_Status_With_ItemKey_When_Item_Does_Not_Exist_Returns_None() =>
         Assert.Equal(ItemStatus.None, await ServiceFactoryNoLogger.GetTaskStatus(new("status", typeof(int))));
 
     [Fact]
-    public async Task Get_Task_Status_With_ItemKey_When_Item_Exists()
+    public async Task Get_Task_Status_With_ItemKey_When_Item_Exists_Returns_Status()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<ItemStatus>();
@@ -138,11 +125,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Has_Task_When_With_Key_Item_Does_Not_Exist() =>
+    public async Task Has_Task_When_With_Key_Item_Does_Not_Exist_Returns_False() =>
         Assert.False(await ServiceFactoryNoLogger.HasTask<int>("has"));
 
     [Fact]
-    public async Task Has_Task_With_Key_When_Item_Exists()
+    public async Task Has_Task_With_Key_When_Item_Exists_Returns_True()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<bool>();
@@ -167,11 +154,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Has_Task_With_ItemKey_When_Item_Does_Not_Exist() =>
+    public async Task Has_Task_With_ItemKey_When_Item_Does_Not_Exist_Returns_False() =>
         Assert.False(await ServiceFactoryNoLogger.HasTask(new("has", typeof(int))));
 
     [Fact]
-    public async Task Has_Task_With_ItemKey_When_Item_Exists()
+    public async Task Has_Task_With_ItemKey_When_Item_Exists_Returns_True()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<bool>();
@@ -196,11 +183,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Get_Task_With_Key_When_Item_Does_Not_Exist() =>
+    public async Task Get_Task_With_Key_When_Item_Does_Not_Exist_Returns_Null() =>
         Assert.Null(await ServiceFactoryNoLogger.GetTask<int>("get"));
 
     [Fact]
-    public async Task Get_Task_With_Key_When_Item_Exists()
+    public async Task Get_Task_With_Key_When_Item_Exists_Returns_Instance()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<object?>();
@@ -225,11 +212,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Get_Task_With_ItemKey_When_Item_Does_Not_Exist() =>
+    public async Task Get_Task_With_ItemKey_When_Item_Does_Not_Exist_Returns_Null() =>
         Assert.Null(await ServiceFactoryNoLogger.GetTask<int>(new ItemKey("get", typeof(int))));
 
     [Fact]
-    public async Task Get_Task_With_ItemKey_When_Item_Exists()
+    public async Task Get_Task_With_ItemKey_When_Item_Exists_Returns_Instance()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<object?>();
@@ -254,11 +241,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Cancel_Task_With_Key_When_Item_Does_Not_Exist() =>
+    public async Task Cancel_Task_With_Key_When_Item_Does_Not_Exist_Returns_False() =>
         Assert.False(await ServiceFactoryNoLogger.CancelTask<int>("cancel"));
 
     [Fact]
-    public async Task Cancel_Task_With_Key_When_Item_Exists()
+    public async Task Cancel_Task_With_Key_When_Item_Exists_Returns_True()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<bool>();
@@ -285,11 +272,11 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Cancel_Task_With_ItemKey_When_Item_Does_Not_Exist() =>
+    public async Task Cancel_Task_With_ItemKey_When_Item_Does_Not_Exist_Returns_False() =>
         Assert.False(await ServiceFactoryNoLogger.CancelTask<int>(new ItemKey("cancel", typeof(int))));
 
     [Fact]
-    public async Task Cancel_Task_With_ItemKey_When_Item_Exists()
+    public async Task Cancel_Task_With_ItemKey_When_Item_Exists_Returns_True()
     {
         var service = ServiceFactoryNoLogger;
         var results = new ConcurrentBag<bool>();
@@ -316,7 +303,48 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_With_Key_Logs()
+    public async Task Cancel_Task_With_ItemKey_When_Item_Exists_And_External_Cancellation_Requested_Waiting_For_Eviction_Returns_True()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var service = ServiceFactoryNoLogger;
+        var results = new ConcurrentBag<bool>();
+
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await Task.WhenAll(
+                service.AddTask(
+                    "cancel",
+                    async ct =>
+                    {
+                        await Task.Delay(500, ct);
+                        return true;
+                    }
+                ),
+                Task.Run(async () =>
+                {
+                    await Task.Delay(250);
+                    try
+                    {
+                        await service.CancelTask<bool>(
+                            key: new ItemKey("cancel", typeof(bool)),
+                            waitForEviction: true,
+                            cancellationToken: cts.Token
+                        );
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        results.Add(true);
+                    }
+                })
+            )
+        );
+
+        Assert.True(results.First());
+    }
+
+    [Fact]
+    public async Task Add_Task_With_ItemKey_No_PreserveExecutionResultDuration_Set_Emits_Expected_Logs()
     {
         var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
         var service = new InstanceTaskMultiplexer(logger: logger);
@@ -362,9 +390,100 @@ public class InstanceTaskMultiplexerTests
                     .Where(y =>
                         y is IEnumerable<KeyValuePair<string, object>> args
                         && args.LastOrDefault().Value?.ToString() is { } originalMessage
-                        && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultMessage}, and will be removed from the items list"
+                        && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list"
                         && y.ToString() is { } message
                         && message.Contains(" successfully,")
+                    )
+                    .Any()
+            )
+        );
+        Assert.Single(
+            calls.Where(x =>
+                x.GetArguments()
+                    .Where(y =>
+                        y is IEnumerable<KeyValuePair<string, object>> args
+                        && y.ToString() == $"Request with key {key} was removed"
+                    )
+                    .Any()
+            )
+        );
+        Assert.Single(
+            calls.Where(x =>
+                x.GetArguments()
+                    .Where(y =>
+                        y is IEnumerable<KeyValuePair<string, object>>
+                        && y?.ToString() == $"Number of items remaining in the list: {0}"
+                    )
+                    .Any()
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Add_Task_With_ItemKey_PreserveExecutionResultDuration_Set_Emits_Expected_Logs()
+    {
+        var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
+        var service = new InstanceTaskMultiplexer(
+            config: new() { PreserveExecutionResultDuration = TimeSpan.FromMilliseconds(500) },
+            logger: logger
+        );
+        var key = new ItemKey("log", typeof(int));
+
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                "log",
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 1;
+                }
+            )
+        );
+
+        await Task.Delay(500);
+
+        var calls = logger.ReceivedCalls().ToList();
+
+        Assert.Single(
+            calls.Where(x =>
+                x.GetArguments()
+                    .Where(y =>
+                        y is IEnumerable<KeyValuePair<string, object>> args
+                        && y.ToString() == $"Request with key {key} was added to the items list"
+                    )
+                    .Any()
+            )
+        );
+        Assert.Single(
+             calls.Where(x =>
+                 x.GetArguments()
+                     .Where(y =>
+                         y is IEnumerable<KeyValuePair<string, object>>
+                         && y?.ToString() == $"Number of items in list: {1}"
+                     )
+                     .Any()
+             )
+         );
+        Assert.Single(
+            calls.Where(x =>
+                x.GetArguments()
+                    .Where(y =>
+                        y is IEnumerable<KeyValuePair<string, object>> args
+                        && args.LastOrDefault().Value?.ToString() is { } originalMessage
+                        && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, successfully, and will be removed from the items list after {PreserveExecutionResultDuration}"
+                        && y.ToString() is { } message
+                        && message.Contains(" successfully,")
+                    )
+                    .Any()
+            )
+        );
+        Assert.Single(
+            calls.Where(x =>
+                x.GetArguments()
+                    .Where(y =>
+                        y is IEnumerable<KeyValuePair<string, object>> args
+                        && y.ToString() == $"Request with key {key} was removed"
                     )
                     .Any()
             )
@@ -386,7 +505,7 @@ public class InstanceTaskMultiplexerTests
         Assert.Equal(
             1,
             await ServiceFactoryNoLogger.AddTask(
-                "status",
+                "test",
                 async ct =>
                 {
                     await Task.Delay(250, ct);
@@ -396,13 +515,179 @@ public class InstanceTaskMultiplexerTests
         );
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_With_Cancellation_Set_To_Expire_Before_Completion()
+    public async Task Add_Task_With_ItemKey_PreserveExecutionResultDuration_And_No_ExecutionTimeout_Runs_Flow()
+    {
+        var key = new ItemKey("test", typeof(int));
+        var service = new InstanceTaskMultiplexer(config: new() { PreserveExecutionResultDuration = TimeSpan.FromMilliseconds(1_000) });
+
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 1;
+                }
+            )
+        );
+
+        await Task.Delay(500);
+
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
+        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 2;
+                }
+            )
+        );
+
+        await Task.Delay(2_000);
+
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+    }
+
+    [Fact]
+    public async Task Add_Task_With_ItemKey_PreserveExecutionResultDuration_And_ExecutionTimeout_Runs_Flow()
+    {
+        var key = new ItemKey("test", typeof(int));
+        var service = new InstanceTaskMultiplexer(
+            config: new()
+            {
+                ExecutionTimeout = TimeSpan.FromMilliseconds(500),
+                PreserveExecutionResultDuration = TimeSpan.FromMilliseconds(1_000)
+            }
+        );
+
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 1;
+                }
+            )
+        );
+
+        await Task.Delay(500);
+
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
+        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 2;
+                }
+            )
+        );
+
+        await Task.Delay(2_000);
+
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+    }
+
+    [Fact]
+    public async Task Add_Task_With_ItemKey_PreserveExecutionResultDuration_ExecutionTimeout_And_External_Cancellation_Runs_Flow()
+    {
+        var key = new ItemKey("test", typeof(int));
+        var service = new InstanceTaskMultiplexer(
+            config: new()
+            {
+                ExecutionTimeout = TimeSpan.FromMilliseconds(750),
+                PreserveExecutionResultDuration = TimeSpan.FromMilliseconds(1_000)
+            }
+        );
+
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 1;
+                },
+                new CancellationTokenSource(500).Token
+            )
+        );
+
+        await Task.Delay(500);
+
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
+        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 2;
+                }
+            )
+        );
+
+        await Task.Delay(2_000);
+
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+    }
+
+    [Fact]
+    public async Task Add_Task_With_ItemKey_PreserveExecutionResultDuration_No_ExecutionTimeout_And_Cancellation_Request_Through_CancelTask_Waiting_For_Eviction_When_Task_Completed_Runs_Flow()
+    {
+        var key = new ItemKey("test", typeof(int));
+        var service = new InstanceTaskMultiplexer(config: new() { PreserveExecutionResultDuration = TimeSpan.FromMilliseconds(1_000) });
+
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 1;
+                }
+            )
+        );
+
+        await Task.Delay(500);
+
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
+        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(
+            1,
+            await service.AddTask(
+                key,
+                async ct =>
+                {
+                    await Task.Delay(250, ct);
+                    return 2;
+                }
+            )
+        );
+
+        Assert.True(await service.CancelTask<int>(key: key, waitForEviction: true));
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+    }
+
+    [Fact]
+    public async Task Add_Task_With_Single_Type_Items_And_Cancellation_Set_To_Expire_Before_Completion_Runs_Flow()
     {
         var service = ServiceFactoryNoLogger;
         var count = 0;
         var maxConcurrentItems = 0L;
-        var cts = new CancellationTokenSource();
-        cts.CancelAfter(375);
 
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await Task.WhenAll(
@@ -421,7 +706,7 @@ public class InstanceTaskMultiplexerTests
 
                             return Random.Shared.Next();
                         },
-                        cts.Token
+                        new CancellationTokenSource(375).Token
                     )
                 )
             )
@@ -431,14 +716,13 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Polymorphic_Items_With_Cancellation_Set_To_Expire_Before_Completion()
+    public async Task Add_Task_With_Polymorphic_Items_And_Cancellation_Set_To_Expire_Before_Completion_Runs_Flow()
     {
         var service = ServiceFactoryNoLogger;
         int count = 0;
         var maxConcurrentItems = 0L;
-        var cts = new CancellationTokenSource();
+        var cts = new CancellationTokenSource(375);
         var results = new ConcurrentBag<object>();
-        cts.CancelAfter(375);
 
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await Task.WhenAll(
@@ -540,7 +824,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_And_Extreme_Number_Of_Requests_With_ILogger()
+    public async Task Add_Task_With_Extreme_Number_Of_Requests_Of_Single_Type_And_ILogger_Runs_Flow()
     {
         var service = ServiceFactoryILogger;
         var count = 0;
@@ -573,7 +857,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_And_Extreme_Number_Of_Requests_With_ILogger_Using_ParallelForEach()
+    public async Task Add_Task_With_Extreme_Number_Of_Requests_Of_Single_Type_And_ILogger_Using_ParallelForEach_Runs_Flow()
     {
         var service = ServiceFactoryILogger;
         var count = 0;
@@ -607,7 +891,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_And_Extreme_Number_Of_Requests_With_No_Logger_Using_ParallelForEach()
+    public async Task Add_Task_With_Single_Type_Items_And_Extreme_Number_Of_Requests_With_No_Logger_Using_ParallelForEach_Runs_Flow()
     {
         var service = ServiceFactoryNoLogger;
         var count = 0;
@@ -641,7 +925,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_And_Large_Number_Of_Requests_With_ILogger_Using_ParallelForEach()
+    public async Task Add_Task_With_Single_Type_Items_And_Large_Number_Of_Requests_With_ILogger_Using_ParallelForEach_Runs_Flow()
     {
         var service = ServiceFactoryILogger;
         var count = 0;
@@ -674,7 +958,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Single_Type_Items_And_Large_Number_Of_Unique_And_Parallel_Requests_With_ILogger_Using_ParallelForEach_And_WhenAll()
+    public async Task Add_Task_With_Single_Type_Items_And_Large_Number_Of_Unique_And_Parallel_Requests_With_ILogger_Using_ParallelForEach_And_WhenAll_Runs_Flow()
     {
         var service = ServiceFactoryILogger;
         var count = 0;
@@ -707,7 +991,7 @@ public class InstanceTaskMultiplexerTests
     }
 
     [Fact]
-    public async Task Add_Task_Request_Throws_Exception_No_Logger() =>
+    public async Task Add_Task_With_No_Logger_On_Error_Throws_Exception() =>
         await Assert.ThrowsAsync<Exception>(async () =>
             await ServiceFactoryNoLogger.AddTask<int>(
                 "exception",
@@ -716,7 +1000,7 @@ public class InstanceTaskMultiplexerTests
         );
 
     [Fact]
-    public async Task Add_Task_Request_Throws_Exception_ILogger() =>
+    public async Task Add_Task_With_ILogger_On_Error_Throws_Exception() =>
         await Assert.ThrowsAsync<Exception>(async () =>
             await ServiceFactoryILogger.AddTask<int>(
                 "exception",
@@ -725,11 +1009,7 @@ public class InstanceTaskMultiplexerTests
         );
 
     [Fact]
-    public async Task Add_Task_Request_Cancelled_No_Logger()
-    {
-        var cts = new CancellationTokenSource();
-        cts.CancelAfter(100);
-
+    public async Task Add_Task_With_Key_And_No_Logger_When_Externally_Cancelled_Throws_Exception() =>
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await ServiceFactoryNoLogger.AddTask(
                 "cancelled",
@@ -739,17 +1019,12 @@ public class InstanceTaskMultiplexerTests
 
                     return 1;
                 },
-                cts.Token
+                new CancellationTokenSource(100).Token
             )
         );
-    }
 
     [Fact]
-    public async Task Add_Task_Request_Cancelled_ILogger()
-    {
-        var cts = new CancellationTokenSource();
-        cts.CancelAfter(100);
-
+    public async Task Add_Task_With_Key_And_ILogger_When_Externally_Cancelled_Throws_Exception() =>
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await ServiceFactoryILogger.AddTask(
                 "cancelled",
@@ -759,13 +1034,12 @@ public class InstanceTaskMultiplexerTests
 
                     return 1;
                 },
-                cts.Token
+                new CancellationTokenSource(100).Token
             )
         );
-    }
 
     [Fact]
-    public async Task Add_Task_Request_Not_Cancelled_By_ExecutionTimeout_NoLogger() =>
+    public async Task Add_Task_With_Key_And_No_Logger_When_Not_Cancelled_By_ExecutionTimeout_Runs_Flow() =>
         Assert.Equal(
             1,
             await new InstanceTaskMultiplexer(config: new() { ExecutionTimeout = TimeSpan.Zero }).AddTask(
@@ -780,9 +1054,9 @@ public class InstanceTaskMultiplexerTests
         );
 
     [Fact]
-    public async Task Add_Task_Request_Cancelled_By_ExecutionTimeout_NoLogger() =>
+    public async Task Add_Task_With_Key_And_No_Logger_When_Cancelled_By_ExecutionTimeout_Throws_Exception() =>
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-            await ServiceFactoryOptionsNoLogger.AddTask(
+            await new InstanceTaskMultiplexer(config: new() { ExecutionTimeout = TimeSpan.FromMilliseconds(250) }).AddTask(
                 "cancelled",
                 async ct =>
                 {
@@ -794,9 +1068,12 @@ public class InstanceTaskMultiplexerTests
         );
 
     [Fact]
-    public async Task Add_Task_Request_Cancelled_By_ExecutionTimeout_ILogger() =>
+    public async Task Add_Task_With_Key_And_ILogger_When_Cancelled_By_ExecutionTimeout_Throws_Exception() =>
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-            await ServiceFactoryOptionsILogger.AddTask(
+            await new InstanceTaskMultiplexer(
+                config: new() { ExecutionTimeout = TimeSpan.FromMilliseconds(250) },
+                logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
+            ).AddTask(
                 "cancelled",
                 async ct =>
                 {

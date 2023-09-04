@@ -1,3 +1,6 @@
 {
-    "dotnet.defaultSolution": "TaskMuxer.sln"
+    "dotnet.defaultSolution": "TaskMuxer.sln",
+    "cSpell.words": [
+        "Muxer"
+    ]
 }
