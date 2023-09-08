@@ -7,12 +7,12 @@ public class ServiceTests
 {
     public class SampleService
     {
-        readonly ITaskMultiplexer _taskMultiplexer;
-        readonly SampleDataContext _dbContext;
+        private readonly ITaskMultiplexer _taskMultiplexer;
+        private readonly SampleDataContext _dbContext;
 
         public IQueryable<SampleEntity> Samples => _dbContext.Samples;
 
-        private SemaphoreSlim _semaphoreSlim = new(1);
+        private readonly SemaphoreSlim _semaphoreSlim = new(1);
 
         public SampleService(ITaskMultiplexer taskMultiplexer, SampleDataContext dbContext) =>
             (_taskMultiplexer, _dbContext) = (taskMultiplexer, dbContext);
