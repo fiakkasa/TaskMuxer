@@ -11,7 +11,7 @@
 public class InstanceTaskMultiplexerBenchmarks
 {
     public static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
-    public static InstanceTaskMultiplexer ServiceFactoryILogger => new(logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>());
+    public static InstanceTaskMultiplexer ServiceFactoryILogger => new(logger: new MockLogger<InstanceTaskMultiplexer>());
 
     public static Func<CancellationToken, Task<int>> GetSingleTypeCompletedWorkFuncFactory() =>
         _ => Task.FromResult(1);

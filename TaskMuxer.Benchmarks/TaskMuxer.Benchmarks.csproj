@@ -12,6 +12,5 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.8" />
-    <PackageReference Include="NSubstitute" Version="5.0.0" />
   </ItemGroup>
 </Project>
