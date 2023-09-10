@@ -1042,7 +1042,7 @@ public class InstanceTaskMultiplexerTests
     public async Task Add_Task_With_Key_And_No_Logger_When_Not_Cancelled_By_ExecutionTimeout_Runs_Flow() =>
         Assert.Equal(
             1,
-            await new InstanceTaskMultiplexer(config: new() { ExecutionTimeout = TimeSpan.Zero }).AddTask(
+            await new InstanceTaskMultiplexer(config: new() { ExecutionTimeout = TimeSpan.Zero, CollectionCapacity = 1 }).AddTask(
                 "not_cancelled",
                 async ct =>
                 {
@@ -1056,7 +1056,7 @@ public class InstanceTaskMultiplexerTests
     [Fact]
     public async Task Add_Task_With_Key_And_No_Logger_When_Cancelled_By_ExecutionTimeout_Throws_Exception() =>
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-            await new InstanceTaskMultiplexer(config: new() { ExecutionTimeout = TimeSpan.FromMilliseconds(250) }).AddTask(
+            await new InstanceTaskMultiplexer(config: new() { ExecutionTimeout = TimeSpan.FromMilliseconds(250), CollectionCapacity = 10_001 }).AddTask(
                 "cancelled",
                 async ct =>
                 {

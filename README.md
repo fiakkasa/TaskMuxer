@@ -70,6 +70,32 @@ public class ItemsCountService
 }
 ```
 
+### Config
+
+Please consult the `InstanceTaskMultiplexerConfig` for all the possible options available.
+
+```csharp
+public record InstanceTaskMultiplexerConfig : IValidatableObject
+{
+    // 
+    public TimeSpan PreserveExecutionResultDuration { get; set; } = TimeSpan.Zero;
+
+    public TimeSpan ExecutionTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    [Range(10, 100_000)]
+    public int CollectionCapacity { get; set; } = 100;
+
+    public virtual IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (PreserveExecutionResultDuration < TimeSpan.Zero)
+            yield return new($"{nameof(PreserveExecutionResultDuration)} must be equal or greater than {TimeSpan.Zero}", new[] { nameof(ExecutionTimeout) });
+
+        if (ExecutionTimeout <= TimeSpan.Zero)
+            yield return new($"{nameof(ExecutionTimeout)} must be greater than {TimeSpan.Zero}", new[] { nameof(ExecutionTimeout) });
+    }
+}
+```
+
 ### Thread Safety
 
 To achieve thread safety in cases like entity framework core accessing and / or writing data at the same time through parallel threads consider using [semaphores](https://learn.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim) or some other form of locking.
