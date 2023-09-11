@@ -1009,6 +1009,28 @@ public class InstanceTaskMultiplexerTests
         );
 
     [Fact]
+    public async Task Add_Two_Tasks_With_No_Logger_On_Error_Throws_Exception() =>
+        await Assert.ThrowsAsync<Exception>(async () =>
+        {
+            var service = ServiceFactoryNoLogger;
+            await Task.WhenAll(
+                service.AddTask<int>(
+                    "exception",
+                    async ct =>
+                    {
+                        await Task.Delay(500, ct);
+
+                        throw new Exception("Splash");
+                    }
+                ),
+                service.AddTask(
+                    "exception",
+                    _ => Task.FromResult(1)
+                )
+            );
+        });
+
+    [Fact]
     public async Task Add_Task_With_Key_And_No_Logger_When_Externally_Cancelled_Throws_Exception() =>
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await ServiceFactoryNoLogger.AddTask(

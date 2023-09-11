@@ -111,14 +111,21 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
     public async Task<bool> CancelTask<T>(ItemKey key, bool waitForEviction = false, CancellationToken cancellationToken = default)
     {
-        var cts = GetItemInternalCancellationSource<T>(key);
-
-        if (cts is not { }) return false;
+        if (GetItemInternalCancellationSource<T>(key) is not { } cts)
+            return false;
 
         cts.Cancel();
 
-        while (waitForEviction && GetItem(key) is { })
+        if (!waitForEviction) return true;
+
+        Start:
+
+        if (GetItem(key) is { })
+        {
             await Task.Delay(_evictionDelay, cancellationToken);
+
+            goto Start;
+        }
 
         return true;
     }
@@ -126,18 +133,12 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     public Task<T?> AddTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
         AddTask(GenerateKey<T>(key), func, cancellationToken);
 
-
-    public Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default)
+    public async Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default)
     {
-        TaskCompletionSource<T?> taskCompletionSource;
-        InstanceItem<T> item;
-        CancellationTokenSource internalCancellationTokenSource;
-        CancellationTokenSource linkedCancellationTokenSource;
+        _addSemaphore.Wait(CancellationToken.None);
 
         try
         {
-            _addSemaphore.Wait();
-
             if (GetItemTask<T>(key) is { } taskInstance)
             {
                 LogInformation(
@@ -145,54 +146,82 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                     key
                 );
 
-                return taskInstance;
+                _addSemaphore.Release();
+
+                return await taskInstance;
             }
-
-            taskCompletionSource = new TaskCompletionSource<T?>();
-            internalCancellationTokenSource = GenerateInternalCancellationTokenSource();
-            linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(internalCancellationTokenSource.Token, cancellationToken);
-            item = new InstanceItem<T>
-            {
-                TaskCompletionSource = taskCompletionSource,
-                InternalCancellationTokenSource = internalCancellationTokenSource,
-                Status = ItemStatus.Created
-            };
-
-            if (!_items.TryAdd(key, item))
-            {
-                LogWarning(default, "Request with key {Key} was not added in the items list", key);
-
-                linkedCancellationTokenSource.Dispose();
-
-                return Task.FromResult(default(T?));
-            }
-
-            item.Status = ItemStatus.Added;
-
-            LogInformation("Request with key {Key} was added to the items list", key);
-            LogInformation("Number of items in list: {Count}", _items.Count);
-
         }
-        finally
+        catch (TaskCanceledException ex)
         {
-            _addSemaphore.Release();
-        }
-
-        try
-        {
-            return taskCompletionSource.Task;
-        }
-        finally
-        {
-            RunItemWorkflow(
+            LogWarning(
+                ex,
+                "Request with key {Key} was cancelled with message: {Message}",
                 key,
-                item,
-                taskCompletionSource,
-                func,
-                internalCancellationTokenSource,
-                linkedCancellationTokenSource
+                ex.Message
             );
+
+            _addSemaphore.Release();
+
+            return default;
         }
+        catch (Exception ex)
+        {
+            LogError(ex, "Request with key {Key} failed with message: {Message}", key, ex.Message);
+
+            _addSemaphore.Release();
+
+            return default;
+        }
+
+        var taskCompletionSource = new TaskCompletionSource<T?>();
+        var internalCancellationTokenSource = GenerateInternalCancellationTokenSource();
+        var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(internalCancellationTokenSource.Token, cancellationToken);
+        var item = new InstanceItem<T>
+        {
+            TaskCompletionSource = taskCompletionSource,
+            InternalCancellationTokenSource = internalCancellationTokenSource,
+            Status = ItemStatus.Created
+        };
+
+        if (!_items.TryAdd(key, item))
+        {
+            LogWarning(default, "Request with key {Key} was not added in the items list", key);
+
+            DisposeTaskAssets(taskCompletionSource, internalCancellationTokenSource, linkedCancellationTokenSource);
+
+            _addSemaphore.Release();
+
+            return default;
+        }
+
+        item.Status = ItemStatus.Added;
+
+        LogInformation("Request with key {Key} was added to the items list", key);
+        LogInformation("Number of items in list: {Count}", _items.Count);
+
+        _addSemaphore.Release();
+
+        RunItemWorkflow(
+            key,
+            item,
+            taskCompletionSource,
+            func,
+            internalCancellationTokenSource,
+            linkedCancellationTokenSource
+        );
+
+        return await taskCompletionSource.Task;
+    }
+
+    private static void DisposeTaskAssets<T>(
+        TaskCompletionSource<T?>? taskCompletionSource,
+        CancellationTokenSource? internalCancellationTokenSource,
+        CancellationTokenSource? linkedCancellationTokenSource
+    )
+    {
+        linkedCancellationTokenSource?.Dispose();
+        internalCancellationTokenSource?.Dispose();
+        taskCompletionSource?.Task.Dispose();
     }
 
     private void RunItemWorkflow<T>(
@@ -236,7 +265,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
             catch (Exception ex)
             {
                 item.Status = ItemStatus.Failed;
-                LogError(ex, "Request with key {Key}, failed with message: {Message}", key, ex.Message);
+                LogError(ex, "Request with key {Key} failed with message: {Message}", key, ex.Message);
                 taskCompletionSource.SetException(ex);
             }
 
@@ -281,9 +310,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
             _items.TryRemove(key, out var _);
 
-            linkedCancellationTokenSource.Dispose();
-            internalCancellationTokenSource.Dispose();
-            taskCompletionSource.Task.Dispose();
+            DisposeTaskAssets(taskCompletionSource, internalCancellationTokenSource, linkedCancellationTokenSource);
 
             LogInformation("Request with key {Key} was removed", key);
             LogInformation("Number of items remaining in the list: {Count}", _items.Count);
