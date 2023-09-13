@@ -471,7 +471,7 @@ public class InstanceTaskMultiplexerTests
                     .Where(y =>
                         y is IEnumerable<KeyValuePair<string, object>> args
                         && args.LastOrDefault().Value?.ToString() is { } originalMessage
-                        && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, successfully, and will be removed from the items list after {PreserveExecutionResultDuration}"
+                        && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list"
                         && y.ToString() is { } message
                         && message.Contains(" successfully,")
                     )
