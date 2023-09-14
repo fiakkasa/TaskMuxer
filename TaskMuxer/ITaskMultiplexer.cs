@@ -25,4 +25,8 @@ public interface ITaskMultiplexer
     Task<T?> AddTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default);
 
     Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default);
+
+    Task<T?> AddLongRunningTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default);
+
+    Task<T?> AddLongRunningTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default);
 }

@@ -1105,4 +1105,88 @@ public class InstanceTaskMultiplexerTests
                 }
             )
         );
+
+    [Fact]
+    public async Task Add_Long_Running_Task_With_Key() =>
+        Assert.Equal(
+            1,
+            await new InstanceTaskMultiplexer(
+                config: new()
+                {
+                    ExecutionTimeout = TimeSpan.FromMilliseconds(250),
+                    LongRunningTaskExecutionTimeout = TimeSpan.FromMilliseconds(500)
+                },
+                logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
+            ).AddLongRunningTask(
+                "test",
+                async ct =>
+                {
+                    await Task.Delay(375, ct);
+                    return 1;
+                }
+            )
+        );
+
+    [Fact]
+    public async Task Add_Long_Running_Task_With_ItemKey() =>
+        Assert.Equal(
+            1,
+            await new InstanceTaskMultiplexer(
+                config: new()
+                {
+                    ExecutionTimeout = TimeSpan.FromMilliseconds(250),
+                    LongRunningTaskExecutionTimeout = TimeSpan.FromMilliseconds(500)
+                },
+                logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
+            ).AddLongRunningTask(
+                new ItemKey("test", typeof(int)),
+                async ct =>
+                {
+                    await Task.Delay(375, ct);
+                    return 1;
+                }
+            )
+        );
+
+    [Fact]
+    public async Task Add_Long_Running_Task_With_Key_And_ILogger_When_Cancelled_By_ExecutionTimeout_Throws_Exception() =>
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await new InstanceTaskMultiplexer(
+                config: new()
+                {
+                    ExecutionTimeout = TimeSpan.FromMilliseconds(250),
+                    LongRunningTaskExecutionTimeout = TimeSpan.FromMilliseconds(500)
+                },
+                logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
+            ).AddLongRunningTask(
+                "cancelled",
+                async ct =>
+                {
+                    await Task.Delay(1_000, ct);
+
+                    return 1;
+                }
+            )
+        );
+
+    [Fact]
+    public async Task Add_Long_Running_Task_With_ItemKey_And_ILogger_When_Cancelled_By_ExecutionTimeout_Throws_Exception() =>
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await new InstanceTaskMultiplexer(
+               config: new()
+               {
+                   ExecutionTimeout = TimeSpan.FromMilliseconds(250),
+                   LongRunningTaskExecutionTimeout = TimeSpan.FromMilliseconds(500)
+               },
+                logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
+            ).AddLongRunningTask(
+                new ItemKey("cancelled", typeof(int)),
+                async ct =>
+                {
+                    await Task.Delay(1_000, ct);
+
+                    return 1;
+                }
+            )
+        );
 }

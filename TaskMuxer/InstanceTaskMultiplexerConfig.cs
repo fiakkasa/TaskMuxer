@@ -19,6 +19,13 @@ public record InstanceTaskMultiplexerConfig : IValidatableObject
     public TimeSpan ExecutionTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    /// Intended to short circuit a long running task execution if defined duration is exceeded.
+    /// ExecutionTimeout must be greater than TimeSpan.Zero
+    /// </summary>
+    /// <returns></returns>
+    public TimeSpan LongRunningTaskExecutionTimeout { get; set; } = TimeSpan.FromSeconds(300);
+
+    /// <summary>
     /// Defines the initial collection capacity for the InstanceTaskMultiplexer
     /// Must be in [Range(10, 100_000)]
     /// </summary>
@@ -29,9 +36,22 @@ public record InstanceTaskMultiplexerConfig : IValidatableObject
     public virtual IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (PreserveExecutionResultDuration < TimeSpan.Zero)
-            yield return new($"{nameof(PreserveExecutionResultDuration)} must be equal or greater than {TimeSpan.Zero}", new[] { nameof(ExecutionTimeout) });
+        {
+            yield return new(
+                $"{nameof(PreserveExecutionResultDuration)} must be equal or greater than {TimeSpan.Zero}",
+                new[] { nameof(PreserveExecutionResultDuration) }
+            );
+        }
 
         if (ExecutionTimeout <= TimeSpan.Zero)
             yield return new($"{nameof(ExecutionTimeout)} must be greater than {TimeSpan.Zero}", new[] { nameof(ExecutionTimeout) });
+
+        if (LongRunningTaskExecutionTimeout < ExecutionTimeout)
+        {
+            yield return new(
+                $"{nameof(LongRunningTaskExecutionTimeout)} must be equal or greater than {ExecutionTimeout}",
+                new[] { nameof(LongRunningTaskExecutionTimeout) }
+            );
+        }
     }
 }

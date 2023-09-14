@@ -48,10 +48,14 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
     private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
 
-    private CancellationTokenSource GenerateInternalCancellationTokenSource() =>
-        _config?.ExecutionTimeout switch
+    private CancellationTokenSource GenerateInternalCancellationTokenSource(bool longRunning) =>
+        (longRunning, _config) switch
         {
-            { } ExecutionTimeout when ExecutionTimeout > TimeSpan.Zero => new CancellationTokenSource(ExecutionTimeout),
+            (false, { ExecutionTimeout: { } ExecutionTimeout }) when ExecutionTimeout > TimeSpan.Zero =>
+                new CancellationTokenSource(ExecutionTimeout),
+            (true, { ExecutionTimeout: { } ExecutionTimeout, LongRunningTaskExecutionTimeout: { } LongRunningTaskExecutionTimeout })
+                when ExecutionTimeout > TimeSpan.Zero && LongRunningTaskExecutionTimeout >= ExecutionTimeout =>
+                new CancellationTokenSource(LongRunningTaskExecutionTimeout),
             _ => new CancellationTokenSource()
         };
 
@@ -124,7 +128,16 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     public Task<T?> AddTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
         AddTask(GenerateKey<T>(key), func, cancellationToken);
 
-    public async Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default)
+    public Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
+        AddTask(key, func, false, cancellationToken);
+
+    public Task<T?> AddLongRunningTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
+        AddLongRunningTask(GenerateKey<T>(key), func, cancellationToken);
+
+    public Task<T?> AddLongRunningTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
+        AddTask(key, func, true, cancellationToken);
+
+    private async Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, bool longRunning, CancellationToken cancellationToken = default)
     {
         _addSemaphore.Wait(CancellationToken.None);
 
@@ -138,7 +151,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         }
 
         var taskCompletionSource = new TaskCompletionSource<T?>();
-        var internalCancellationTokenSource = GenerateInternalCancellationTokenSource();
+        var internalCancellationTokenSource = GenerateInternalCancellationTokenSource(longRunning);
         var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(internalCancellationTokenSource.Token, cancellationToken);
         var item = new InstanceItem<T>
         {
