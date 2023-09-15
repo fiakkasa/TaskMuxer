@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace TaskMuxer;
 
-public class InstanceTaskMultiplexer : ITaskMultiplexer
+public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
 {
     private const int _evictionDelay = 250;
     private const int _defaultCollectionCapacity = 100;
@@ -13,6 +13,16 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     private readonly ILogger<InstanceTaskMultiplexer>? _logger;
     private readonly InstanceTaskMultiplexerConfig? _config;
     private readonly SemaphoreSlim _addSemaphore = new(_defaultConcurrency);
+    private bool _serviceable = true;
+
+    private ConcurrentDictionary<ItemKey, InstanceItem> Items
+    {
+        get
+        {
+            EnsureServiceable();
+            return _items;
+        }
+    }
 
     public InstanceTaskMultiplexer() =>
         _items = new ConcurrentDictionary<ItemKey, InstanceItem>(
@@ -35,6 +45,11 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
             )
         );
 
+    private void EnsureServiceable()
+    {
+        if (!_serviceable) throw new ObjectDisposedException(nameof(InstanceTaskMultiplexer));
+    }
+
 #pragma warning disable CA2254
     private void LogInformation(string? message, params object[] args) =>
         _logger?.LogInformation(message, args);
@@ -48,6 +63,28 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
     private static ItemKey GenerateKey<T>(string key) => new(key, typeof(T));
 
+    private static void CancelOperation(
+       CancellationTokenSource internalCancellationTokenSource,
+       CancellationTokenSource preserveExecutionResultCancellationTokenSource
+    )
+    {
+        internalCancellationTokenSource.Cancel();
+        preserveExecutionResultCancellationTokenSource.Cancel();
+    }
+
+    private static void DisposeOperation<T>(
+        TaskCompletionSource<T?> taskCompletionSource,
+        CancellationTokenSource internalCancellationTokenSource,
+        CancellationTokenSource linkedCancellationTokenSource,
+        CancellationTokenSource preserveExecutionResultCancellationTokenSource
+    )
+    {
+        linkedCancellationTokenSource.Dispose();
+        internalCancellationTokenSource.Dispose();
+        taskCompletionSource.Task.Dispose();
+        preserveExecutionResultCancellationTokenSource.Dispose();
+    }
+
     private CancellationTokenSource GenerateInternalCancellationTokenSource(bool longRunning) =>
         (longRunning, _config) switch
         {
@@ -59,7 +96,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
             _ => new CancellationTokenSource()
         };
 
-    private InstanceItem? GetItem(ItemKey key) => _items.TryGetValue(key, out var item) switch
+    private InstanceItem? GetItem(ItemKey key) => Items.TryGetValue(key, out var item) switch
     {
         true => item,
         _ => default
@@ -72,10 +109,10 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     };
 
     public Task<long> ItemsCount(CancellationToken cancellationToken = default) =>
-        Task.FromResult((long)_items.Count);
+        Task.FromResult((long)Items.Count);
 
     public Task<ICollection<ItemKey>> ItemKeys(CancellationToken cancellationToken = default) =>
-        Task.FromResult(_items.Keys);
+        Task.FromResult(Items.Keys);
 
     public Task<ItemStatus> GetTaskStatus<T>(string key, CancellationToken cancellationToken = default) =>
         GetTaskStatus(GenerateKey<T>(key), cancellationToken);
@@ -93,7 +130,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         HasTask(GenerateKey<T>(key), cancellationToken);
 
     public Task<bool> HasTask(ItemKey key, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_items.ContainsKey(key));
+        Task.FromResult(Items.ContainsKey(key));
 
     public Task<Task<T?>?> GetTask<T>(string key, CancellationToken cancellationToken = default) =>
         GetTask<T>(GenerateKey<T>(key), cancellationToken);
@@ -106,21 +143,13 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
     public async Task<bool> CancelTask<T>(ItemKey key, bool waitForEviction = false, CancellationToken cancellationToken = default)
     {
-        if (GetItem(key)?.InternalCancellationTokenSource is not { } cts)
-            return false;
+        if (GetItem(key) is not { } item) return false;
 
-        cts.Cancel();
+        CancelOperation(item.InternalCancellationTokenSource, item.PreserveExecutionResultCancellationTokenSource);
 
         if (!waitForEviction) return true;
 
-        Start:
-
-        if (GetItem(key) is { })
-        {
-            await Task.Delay(_evictionDelay, cancellationToken);
-
-            goto Start;
-        }
+        while (GetItem(key) is { }) await Task.Delay(_evictionDelay, cancellationToken);
 
         return true;
     }
@@ -131,19 +160,37 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
     public Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
         AddTask(key, func, false, cancellationToken);
 
-    public Task<T?> AddLongRunningTask<T>(string key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
+    public Task<T?> AddLongRunningTask<T>(
+        string key,
+        Func<CancellationToken, Task<T?>> func,
+        CancellationToken cancellationToken = default
+    ) =>
         AddLongRunningTask(GenerateKey<T>(key), func, cancellationToken);
 
-    public Task<T?> AddLongRunningTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, CancellationToken cancellationToken = default) =>
+    public Task<T?> AddLongRunningTask<T>(
+        ItemKey key,
+        Func<CancellationToken, Task<T?>> func,
+        CancellationToken cancellationToken = default
+    ) =>
         AddTask(key, func, true, cancellationToken);
 
-    private async Task<T?> AddTask<T>(ItemKey key, Func<CancellationToken, Task<T?>> func, bool longRunning, CancellationToken cancellationToken = default)
+    private async Task<T?> AddTask<T>(
+        ItemKey key,
+        Func<CancellationToken, Task<T?>> func,
+        bool longRunning,
+        CancellationToken cancellationToken = default
+    )
     {
+        EnsureServiceable();
+
         _addSemaphore.Wait(CancellationToken.None);
 
         if (GetItemTask<T>(key) is { } taskInstance)
         {
-            LogInformation("Request with key {Key} is already present in the items list and the existing instance will be returned instead", key);
+            LogInformation(
+                "Request with key {Key} is already present in the items list and the existing instance will be returned instead",
+                key
+            );
 
             _addSemaphore.Release();
 
@@ -152,19 +199,30 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
 
         var taskCompletionSource = new TaskCompletionSource<T?>();
         var internalCancellationTokenSource = GenerateInternalCancellationTokenSource(longRunning);
-        var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(internalCancellationTokenSource.Token, cancellationToken);
+        var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+            internalCancellationTokenSource.Token,
+            cancellationToken
+        );
+        var preserveExecutionResultDuration = _config?.PreserveExecutionResultDuration ?? TimeSpan.Zero;
+        var preserveExecutionResultCancellationTokenSource = new CancellationTokenSource();
         var item = new InstanceItem<T>
         {
             TaskCompletionSource = taskCompletionSource,
             InternalCancellationTokenSource = internalCancellationTokenSource,
+            PreserveExecutionResultCancellationTokenSource = preserveExecutionResultCancellationTokenSource,
             Status = ItemStatus.Created
         };
 
-        if (!_items.TryAdd(key, item))
+        if (!Items.TryAdd(key, item))
         {
             LogWarning(default, "Request with key {Key} was not added in the items list", key);
 
-            DisposeOperationAssets(taskCompletionSource, internalCancellationTokenSource, linkedCancellationTokenSource);
+            DisposeOperation(
+                taskCompletionSource,
+                internalCancellationTokenSource,
+                linkedCancellationTokenSource,
+                preserveExecutionResultCancellationTokenSource
+            );
 
             _addSemaphore.Release();
 
@@ -174,7 +232,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         item.Status = ItemStatus.Added;
 
         LogInformation("Request with key {Key} was added to the items list", key);
-        LogInformation("Number of items in list: {Count}", _items.Count);
+        LogInformation("Number of items in list: {Count}", Items.Count);
 
         _addSemaphore.Release();
 
@@ -184,21 +242,12 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
             taskCompletionSource,
             func,
             internalCancellationTokenSource,
-            linkedCancellationTokenSource
+            linkedCancellationTokenSource,
+            preserveExecutionResultDuration,
+            preserveExecutionResultCancellationTokenSource
         );
 
         return await taskCompletionSource.Task;
-    }
-
-    private static void DisposeOperationAssets<T>(
-        TaskCompletionSource<T?>? taskCompletionSource,
-        CancellationTokenSource? internalCancellationTokenSource,
-        CancellationTokenSource? linkedCancellationTokenSource
-    )
-    {
-        linkedCancellationTokenSource?.Dispose();
-        internalCancellationTokenSource?.Dispose();
-        taskCompletionSource?.Task.Dispose();
     }
 
     private void RunItemWorkflow<T>(
@@ -207,7 +256,9 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
         TaskCompletionSource<T?> taskCompletionSource,
         Func<CancellationToken, Task<T?>> func,
         CancellationTokenSource internalCancellationTokenSource,
-        CancellationTokenSource linkedCancellationTokenSource
+        CancellationTokenSource linkedCancellationTokenSource,
+        TimeSpan preserveExecutionResultDuration,
+        CancellationTokenSource preserveExecutionResultCancellationTokenSource
     )
     {
         var startTimestamp = Stopwatch.GetTimestamp();
@@ -226,6 +277,7 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
             catch (TaskCanceledException ex)
             {
                 item.Status = ItemStatus.Canceled;
+
                 LogWarning(
                     ex,
                     "Request with key {Key}, was cancelled by {CancellationSource} cancellation source, with message: {Message}",
@@ -237,12 +289,15 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                     },
                     ex.Message
                 );
+
                 taskCompletionSource.SetCanceled(linkedCancellationTokenSource.Token);
             }
             catch (Exception ex)
             {
                 item.Status = ItemStatus.Failed;
+
                 LogError(ex, "Request with key {Key} failed with message: {Message}", key, ex.Message);
+
                 taskCompletionSource.SetException(ex);
             }
 
@@ -258,35 +313,53 @@ public class InstanceTaskMultiplexer : ITaskMultiplexer
                 }
             );
 
-            if (
-                item.Status == ItemStatus.Completed
-                && _config?.PreserveExecutionResultDuration is { } PreserveExecutionResultDuration
-                && PreserveExecutionResultDuration > TimeSpan.Zero
-            )
+            if (item.Status == ItemStatus.Completed && preserveExecutionResultDuration > TimeSpan.Zero)
             {
-                LogInformation("Number of items remaining in the list: {Count}", _items.Count);
+                LogInformation(
+                    "Request with key {Key} will be preserved for {PreserveExecutionResultDuration}",
+                    key,
+                    preserveExecutionResultDuration
+                );
 
-                PreserveExecutionResultDelay(PreserveExecutionResultDuration);
+                try
+                {
+                    await Task.Delay(preserveExecutionResultDuration, preserveExecutionResultCancellationTokenSource.Token);
+                }
+                catch { }
             }
 
-            _items.TryRemove(key, out var _);
+            Items.TryRemove(key, out var _);
 
             LogInformation("Request with key {Key} was removed", key);
-            LogInformation("Number of items remaining in the list: {Count}", _items.Count);
+            LogInformation("Number of items remaining in the list: {Count}", Items.Count);
 
-            DisposeOperationAssets(taskCompletionSource, internalCancellationTokenSource, linkedCancellationTokenSource);
+            DisposeOperation(
+                taskCompletionSource,
+                internalCancellationTokenSource,
+                linkedCancellationTokenSource,
+                preserveExecutionResultCancellationTokenSource
+            );
         }, internalCancellationTokenSource.Token);
     }
 
-    private static void PreserveExecutionResultDelay(TimeSpan PreserveExecutionResultDuration)
+    private void Dispose(bool _)
     {
-        using var autoResetPreservationTimerEvent = new AutoResetEvent(false);
-        using var preservationTimer = new Timer(
-            _ => autoResetPreservationTimerEvent.Set(),
-            null,
-            PreserveExecutionResultDuration,
-            TimeSpan.Zero
-        );
-        autoResetPreservationTimerEvent.WaitOne();
+        if (!_serviceable) return;
+
+        _serviceable = false;
+
+        foreach (var item in _items.Values)
+            CancelOperation(item.InternalCancellationTokenSource, item.PreserveExecutionResultCancellationTokenSource);
+
+        _items.Clear();
+        _addSemaphore.Dispose();
     }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~InstanceTaskMultiplexer() => Dispose(false);
 }

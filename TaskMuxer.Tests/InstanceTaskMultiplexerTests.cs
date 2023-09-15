@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
 namespace TaskMuxer.Tests;
@@ -317,13 +318,13 @@ public class InstanceTaskMultiplexerTests
                     "cancel",
                     async ct =>
                     {
-                        await Task.Delay(500, ct);
+                        await Task.Delay(1_000, ct);
                         return true;
                     }
                 ),
                 Task.Run(async () =>
                 {
-                    await Task.Delay(250);
+                    await Task.Delay(125);
                     try
                     {
                         await service.CancelTask<bool>(
@@ -423,8 +424,9 @@ public class InstanceTaskMultiplexerTests
     public async Task Add_Task_With_ItemKey_PreserveExecutionResultDuration_Set_Emits_Expected_Logs()
     {
         var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
+        var preserveExecutionResultDuration = TimeSpan.FromMilliseconds(500);
         var service = new InstanceTaskMultiplexer(
-            config: new() { PreserveExecutionResultDuration = TimeSpan.FromMilliseconds(500) },
+            config: new() { PreserveExecutionResultDuration = preserveExecutionResultDuration },
             logger: logger
         );
         var key = new ItemKey("log", typeof(int));
@@ -465,6 +467,16 @@ public class InstanceTaskMultiplexerTests
                      .Any()
              )
          );
+        Assert.Single(
+            calls.Where(x =>
+                x.GetArguments()
+                    .Where(y =>
+                        y is IEnumerable<KeyValuePair<string, object>>
+                        && y?.ToString() == $"Request with key {key} will be preserved for {preserveExecutionResultDuration}"
+                    )
+                    .Any()
+            )
+        );
         Assert.Single(
             calls.Where(x =>
                 x.GetArguments()
@@ -1173,11 +1185,11 @@ public class InstanceTaskMultiplexerTests
     public async Task Add_Long_Running_Task_With_ItemKey_And_ILogger_When_Cancelled_By_ExecutionTimeout_Throws_Exception() =>
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await new InstanceTaskMultiplexer(
-               config: new()
-               {
-                   ExecutionTimeout = TimeSpan.FromMilliseconds(250),
-                   LongRunningTaskExecutionTimeout = TimeSpan.FromMilliseconds(500)
-               },
+                config: new()
+                {
+                    ExecutionTimeout = TimeSpan.FromMilliseconds(250),
+                    LongRunningTaskExecutionTimeout = TimeSpan.FromMilliseconds(500)
+                },
                 logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>()
             ).AddLongRunningTask(
                 new ItemKey("cancelled", typeof(int)),
@@ -1189,4 +1201,90 @@ public class InstanceTaskMultiplexerTests
                 }
             )
         );
+
+    [Fact]
+    public async Task Dispose_Service_Cancels_Running_Tasks()
+    {
+        var service = ServiceFactoryNoLogger;
+        await Assert.ThrowsAsync<TaskCanceledException>(() =>
+            Task.WhenAll(
+                Enumerable.Range(1, 3)
+                    .Select(x =>
+                        service.AddTask(
+                            "items" + x,
+                            async ct =>
+                            {
+                                await Task.Delay(500, ct);
+                                return 1;
+                            }
+                        )
+                    )
+                    .Append(Task.Run(async () =>
+                    {
+                        await Task.Delay(250);
+                        service.Dispose();
+                    })
+                )
+            )
+        );
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys());
+    }
+
+    [Fact]
+    public async Task Dispose_Service_Cancels_Running_And_Preserved_Tasks()
+    {
+        var service = new InstanceTaskMultiplexer(config: new() { PreserveExecutionResultDuration = TimeSpan.FromMilliseconds(1_000) });
+
+        await Assert.ThrowsAsync<TaskCanceledException>(() =>
+            Task.WhenAll(
+                Enumerable.Range(1, 3)
+                    .Select(x =>
+                        service.AddTask(
+                            "items" + x,
+                            async ct =>
+                            {
+                                await Task.Delay(x * 250, ct);
+                                return 1;
+                            }
+                        )
+                    )
+                    .Append(Task.Run(async () =>
+                    {
+                        await Task.Delay(625);
+                        service.Dispose();
+                    })
+                )
+            )
+        );
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys());
+    }
+
+    [Fact]
+    public async Task Disposed_Service_Throws_When_AddTask_Invoked()
+    {
+        var service = ServiceFactoryNoLogger;
+        service.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            service.AddTask(
+                "item",
+                async ct =>
+                {
+                    await Task.Delay(500, ct);
+                    return 1;
+                }
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Disposed_Service_Throws_When_ItemKeys_Invoked()
+    {
+        var service = ServiceFactoryNoLogger;
+        service.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys());
+    }
 }
