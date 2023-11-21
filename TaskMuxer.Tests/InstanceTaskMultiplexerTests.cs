@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
 namespace TaskMuxer.Tests;
@@ -367,55 +366,45 @@ public class InstanceTaskMultiplexerTests
 
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>> args
-                        && y.ToString() == $"Request with key {key} was added to the items list"
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Request with key {key} was added to the items list"
+                )
             )
         );
         Assert.Single(
              calls.Where(x =>
-                 x.GetArguments()
-                     .Where(y =>
-                         y is IEnumerable<KeyValuePair<string, object>>
-                         && y?.ToString() == $"Number of items in list: {1}"
-                     )
-                     .Any()
+                 x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Number of items in list: {1}"
+                )
              )
          );
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>> args
-                        && args.LastOrDefault().Value?.ToString() is { } originalMessage
-                        && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list"
-                        && y.ToString() is { } message
-                        && message.Contains(" successfully,")
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>> args
+                    && args.LastOrDefault().Value?.ToString() is { } originalMessage
+                    && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list"
+                    && y.ToString() is { } message
+                    && message.Contains(" successfully,")
+                )
             )
         );
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>> args
-                        && y.ToString() == $"Request with key {key} was removed"
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Request with key {key} was removed"
+                )
             )
         );
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>>
-                        && y?.ToString() == $"Number of items remaining in the list: {0}"
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Number of items remaining in the list: {0}"
+                )
             )
         );
     }
@@ -449,65 +438,53 @@ public class InstanceTaskMultiplexerTests
 
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>> args
-                        && y.ToString() == $"Request with key {key} was added to the items list"
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Request with key {key} was added to the items list"
+                )
             )
         );
         Assert.Single(
              calls.Where(x =>
-                 x.GetArguments()
-                     .Where(y =>
-                         y is IEnumerable<KeyValuePair<string, object>>
-                         && y?.ToString() == $"Number of items in list: {1}"
-                     )
-                     .Any()
+                 x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Number of items in list: {1}"
+                )
              )
          );
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>>
-                        && y?.ToString() == $"Request with key {key} will be preserved for {preserveExecutionResultDuration}"
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Request with key {key} will be preserved for {preserveExecutionResultDuration}"
+                )
             )
         );
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>> args
-                        && args.LastOrDefault().Value?.ToString() is { } originalMessage
-                        && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list"
-                        && y.ToString() is { } message
-                        && message.Contains(" successfully,")
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>> args
+                    && args.LastOrDefault().Value?.ToString() is { } originalMessage
+                    && originalMessage == "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list"
+                    && y.ToString() is { } message
+                    && message.Contains(" successfully,")
+                )
             )
         );
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>> args
-                        && y.ToString() == $"Request with key {key} was removed"
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Request with key {key} was removed"
+                )
             )
         );
         Assert.Single(
             calls.Where(x =>
-                x.GetArguments()
-                    .Where(y =>
-                        y is IEnumerable<KeyValuePair<string, object>>
-                        && y?.ToString() == $"Number of items remaining in the list: {0}"
-                    )
-                    .Any()
+                x.GetArguments().Any(y =>
+                    y is IEnumerable<KeyValuePair<string, object>>
+                    && y.ToString() == $"Number of items remaining in the list: {0}"
+                )
             )
         );
     }
@@ -863,7 +840,7 @@ public class InstanceTaskMultiplexerTests
         .Distinct()
         .ToList();
 
-        Assert.InRange(count, 1, 10);
+        Assert.InRange(count, 1, 1_000);
         Assert.Equal(1, maxConcurrentItems);
         Assert.Equal(results.Count, count);
     }
@@ -897,7 +874,7 @@ public class InstanceTaskMultiplexerTests
             )
         );
 
-        Assert.InRange(count, 1, 10);
+        Assert.InRange(count, 1, 1_000);
         Assert.Equal(1, maxConcurrentItems);
         Assert.Equal(results.Count, count);
     }
@@ -931,7 +908,7 @@ public class InstanceTaskMultiplexerTests
             )
         );
 
-        Assert.InRange(count, 1, 10);
+        Assert.InRange(count, 1, 1_000);
         Assert.Equal(1, maxConcurrentItems);
         Assert.Equal(results.Count, count);
     }

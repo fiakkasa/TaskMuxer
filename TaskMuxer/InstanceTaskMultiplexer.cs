@@ -24,12 +24,6 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
         }
     }
 
-    public InstanceTaskMultiplexer() =>
-        _items = new ConcurrentDictionary<ItemKey, InstanceItem>(
-            concurrencyLevel: _defaultConcurrency,
-            capacity: _defaultCollectionCapacity
-        );
-
     public InstanceTaskMultiplexer(InstanceTaskMultiplexerConfig? config = default, ILogger<InstanceTaskMultiplexer>? logger = default) =>
         (_config, _logger, _items) =
         (

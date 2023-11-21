@@ -1,10 +1,12 @@
 ﻿namespace TaskMuxer.Benchmarks;
 
+[SimpleJob(RuntimeMoniker.Net70)]
+[SimpleJob(RuntimeMoniker.Net80)]
 [MemoryDiagnoser(true)]
 [ThreadingDiagnoser]
 [RankColumn]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
-[BenchmarkCategory(new[] { nameof(InstanceTaskMultiplexer), "Single Type" })]
+[BenchmarkCategory(new[] { nameof(InstanceTaskMultiplexer), "SingleType" })]
 [WarmupCount(2)]
 [IterationCount(3)]
 [RPlotExporter]
@@ -13,11 +15,11 @@ public class InstanceTaskMultiplexerSingleTypeBenchmarks
     private static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
     private static InstanceTaskMultiplexer ServiceFactoryILogger => new(logger: new MockLogger<InstanceTaskMultiplexer>());
 
-    private static int result0 = 0;
-    private static int result1 = 1;
-    private static int result2 = 2;
-    private static int result3 = 3;
-    private static int result4 = 4;
+    private const int result0 = 0;
+    private const int result1 = 1;
+    private const int result2 = 2;
+    private const int result3 = 3;
+    private const int result4 = 4;
 
     private static Func<CancellationToken, Task<int?>> GetCompletedWorkFuncFactory(int kind = 0) =>
         _ => Task.FromResult<int?>(kind switch

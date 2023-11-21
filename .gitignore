@@ -11,6 +11,7 @@ autom4te.cache/
 tarballs/
 test-results/
 coverage.cobertura.xml
+coverage.cobertura.*.xml
 
 # Mac bundle stuff
 *.dmg

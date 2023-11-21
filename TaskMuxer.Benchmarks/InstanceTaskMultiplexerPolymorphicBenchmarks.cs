@@ -1,5 +1,7 @@
 namespace TaskMuxer.Benchmarks;
 
+[SimpleJob(RuntimeMoniker.Net70)]
+[SimpleJob(RuntimeMoniker.Net80)]
 [MemoryDiagnoser(true)]
 [ThreadingDiagnoser]
 [RankColumn]
@@ -13,11 +15,11 @@ public class InstanceTaskMultiplexerPolymorphicBenchmarks
     private static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
     private static InstanceTaskMultiplexer ServiceFactoryILogger => new(logger: new MockLogger<InstanceTaskMultiplexer>());
 
-    private static int result0 = 1;
-    private static string result1 = "hello";
-    private static bool result2 = true;
-    private static (int, string) result3 = (1, "hello");
-    private static dynamic result4 = new { Test = 1 };
+    private const int result0 = 1;
+    private const string result1 = "hello";
+    private const bool result2 = true;
+    private readonly static (int, string) result3 = (1, "hello");
+    private readonly static dynamic result4 = new { Test = 1 };
 
     private static Func<CancellationToken, Task<T?>> GetCompletedWorkFuncFactory<T>(int kind = 0) where T : notnull =>
         _ => Task.FromResult<T?>(kind switch
