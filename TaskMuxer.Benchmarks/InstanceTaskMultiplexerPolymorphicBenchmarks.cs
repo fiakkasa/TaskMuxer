@@ -1,7 +1,5 @@
 namespace TaskMuxer.Benchmarks;
 
-[SimpleJob(RuntimeMoniker.Net70)]
-[SimpleJob(RuntimeMoniker.Net80)]
 [MemoryDiagnoser(true)]
 [ThreadingDiagnoser]
 [RankColumn]
