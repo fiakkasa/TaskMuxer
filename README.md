@@ -18,7 +18,7 @@ Tasks are being identified / segmented by a key and their respective return type
 
 ## Note
 
-There appears to be a compatibility issue for projects targeting .NET 7 and assembly `Assembly Microsoft.Extensions.Hosting, Version=7.0.0.0` and more speficically `OptionsBuilderExtensions.ValidateOnStart` resulting in error:
+There appears to be a compatibility issue for projects targeting .NET 7 and assembly `Assembly Microsoft.Extensions.Hosting, Version=7.0.0.0` and more specifically `OptionsBuilderExtensions.ValidateOnStart` resulting in error:
 
 > The call is ambiguous between the following methods or properties: 'Microsoft.Extensions.DependencyInjection.OptionsBuilderExtensions.ValidateOnStart<TOptions>(Microsoft.Extensions.Options.OptionsBuilder<TOptions>)' and 'Microsoft.Extensions.DependencyInjection.OptionsBuilderExtensions.ValidateOnStart<TOptions>(Microsoft.Extensions.Options.OptionsBuilder<TOptions>)'
 
