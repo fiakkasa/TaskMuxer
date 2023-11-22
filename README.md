@@ -16,6 +16,14 @@ Tasks are being identified / segmented by a key and their respective return type
 
 [Nuget](https://www.nuget.org/packages/TaskMuxer/)
 
+## Note
+
+There appears to be a compatibility issue for projects targeting .NET 7 and assembly `Assembly Microsoft.Extensions.Hosting, Version=7.0.0.0` and more speficically `OptionsBuilderExtensions.ValidateOnStart` resulting in error:
+
+> The call is ambiguous between the following methods or properties: 'Microsoft.Extensions.DependencyInjection.OptionsBuilderExtensions.ValidateOnStart<TOptions>(Microsoft.Extensions.Options.OptionsBuilder<TOptions>)' and 'Microsoft.Extensions.DependencyInjection.OptionsBuilderExtensions.ValidateOnStart<TOptions>(Microsoft.Extensions.Options.OptionsBuilder<TOptions>)'
+
+Until resolved please consider using the previous version of the package.
+
 ## Usage
 
 ### Registration
@@ -77,7 +85,7 @@ Please consult the `InstanceTaskMultiplexerConfig` for all the possible options 
 ```csharp
 public record InstanceTaskMultiplexerConfig : IValidatableObject
 {
-    // 
+    //
     public TimeSpan PreserveExecutionResultDuration { get; set; } = TimeSpan.Zero;
 
     public TimeSpan ExecutionTimeout { get; set; } = TimeSpan.FromSeconds(30);
