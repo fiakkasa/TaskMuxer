@@ -9,8 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskMuxer.Tests", "TaskMuxe
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{93F3D40B-277E-433E-A1C2-D19B3D5705E9}"
 	ProjectSection(SolutionItems) = preProject
-		NOTES.md = NOTES.md
 		README.md = README.md
+		NOTES.md = NOTES.md
+		.gitignore = .gitignore
+		global.json = global.json
+		LICENSE = LICENSE
+		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskMuxer.Benchmarks", "TaskMuxer.Benchmarks\TaskMuxer.Benchmarks.csproj", "{6318D96D-107F-49D4-87DD-5C26C7D14BF5}"
