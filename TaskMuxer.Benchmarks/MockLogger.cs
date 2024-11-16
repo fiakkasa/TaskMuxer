@@ -2,9 +2,8 @@ namespace TaskMuxer.Benchmarks;
 
 public class MockLogger<T> : ILogger<T>, IDisposable
 {
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => this;
-
     public void Dispose() { }
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => this;
 
     public bool IsEnabled(LogLevel logLevel) => true;
 

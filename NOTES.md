@@ -5,21 +5,29 @@
 - `dotnet new tool-manifest`
 - `dotnet tool install dotnet-reportgenerator-globaltool`
 
+## Update
+
+- `dotnet tool update dotnet-reportgenerator-globaltool`
+
 ## Tests
 
-- Run: `dotnet test /p:CollectCoverage=true /p:Threshold=80 /p:CoverletOutputFormat=cobertura /p:CoverletOutput='./coverage.cobertura.xml'`
-- Report: `dotnet reportgenerator -reports:./coverage.cobertura.xml -targetdir:./TestResults -reporttypes:Html`
+📝 _The produced coverage.cobertura file is per .NET version ex. `coverage.cobertura.net9.0.xml`_
+
+- Run:
+  `dotnet test /p:CollectCoverage=true /p:Threshold=80 /p:CoverletOutputFormat=cobertura /p:CoverletOutput='../coverage.cobertura.xml'`
+- Report: `dotnet reportgenerator -reports:./coverage.cobertura.net9.0.xml -targetdir:./TestResults -reporttypes:Html`
 
 In one Go!
 
 ```powershell
-dotnet test /p:CollectCoverage=true /p:Threshold=80 /p:CoverletOutputFormat=cobertura /p:CoverletOutput='./coverage.cobertura.xml'
-dotnet reportgenerator -reports:./coverage.cobertura.xml -targetdir:./TestResults -reporttypes:Html
+dotnet test /p:CollectCoverage=true /p:Threshold=80 /p:CoverletOutputFormat=cobertura /p:CoverletOutput='../coverage.cobertura.xml'
+dotnet reportgenerator -reports:./coverage.cobertura.net9.0.xml -targetdir:./TestResults -reporttypes:Html
 ```
 
 ## Benchmarks
 
-`dotnet run -c Release`
+- `cd TaskMuxer.Benchmarks`
+- `dotnet run -c Release --framework net9.0`
 
 ## Info
 

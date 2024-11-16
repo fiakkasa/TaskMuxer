@@ -26,15 +26,15 @@ public static class Extensions
     public static IServiceCollection AddInstanceTaskMultiplexerWithOptionsAndNoLogger(this IServiceCollection services, string? sectionKey = default) =>
         services
             .AddValidatedOptions<InstanceTaskMultiplexerConfig>(sectionKey)
-            .AddSingleton<ITaskMultiplexer>(sp => new InstanceTaskMultiplexer(config: sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue));
+            .AddSingleton<ITaskMultiplexer>(sp => new InstanceTaskMultiplexer(sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue));
 
     public static IServiceCollection AddInstanceTaskMultiplexerWithOptionsAndILogger(this IServiceCollection services, string? sectionKey = default) =>
         services
             .AddValidatedOptions<InstanceTaskMultiplexerConfig>(sectionKey)
             .AddSingleton<ITaskMultiplexer>(sp =>
                 new InstanceTaskMultiplexer(
-                    config: sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue,
-                    logger: sp.GetRequiredService<ILogger<InstanceTaskMultiplexer>>()
+                    sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue,
+                    sp.GetRequiredService<ILogger<InstanceTaskMultiplexer>>()
                 )
             );
 
@@ -43,8 +43,8 @@ public static class Extensions
             .AddValidatedOptions<InstanceTaskMultiplexerConfig>(sectionKey)
             .AddSingleton<ITaskMultiplexer>(sp =>
                 new InstanceTaskMultiplexer(
-                    config: sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue,
-                    logger: sp.GetRequiredService<ILoggerFactory>().CreateLogger<InstanceTaskMultiplexer>()
+                    sp.GetRequiredService<IOptionsMonitor<InstanceTaskMultiplexerConfig>>().CurrentValue,
+                    sp.GetRequiredService<ILoggerFactory>().CreateLogger<InstanceTaskMultiplexer>()
                 )
             );
 }
