@@ -1,9 +1,5 @@
 # TaskMuxer
 
-[![NuGet Version](https://img.shields.io/nuget/v/TaskMuxer)](https://www.nuget.org/packages/TaskMuxer)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/TaskMuxer)](https://www.nuget.org/packages/TaskMuxer)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/fiakkasa/TaskMuxer/blob/master/LICENSE)
-
 Task Multiplexer.
 
 The purpose of this package is to provide the ability to reduce the amount of parallel repetitive work.
@@ -22,6 +18,7 @@ Tasks are being identified / segmented by a key and their respective return type
 
 | TaskMuxer Version | .NET Version |
 |-------------------|--------------|
+| 2.1.1             | .NET 8, 9    |
 | 2.1.0             | .NET 8, 9    |
 | 2.0.1             | .NET 8       |
 | 2.0.0             | .NET 7, 8    |
@@ -228,3 +225,4 @@ await Task.WhenAll(
 ## Similar Projects
 
 - https://github.com/lundog/TaskMultiplexer
+
