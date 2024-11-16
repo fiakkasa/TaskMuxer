@@ -14,9 +14,9 @@ internal record InstanceItem
 [ExcludeFromCodeCoverage]
 internal record InstanceItem<T> : InstanceItem
 {
-    private TaskCompletionSource<T?> _value = default!;
+    private readonly TaskCompletionSource<T?> _value = default!;
 
-    internal required new TaskCompletionSource<T?> TaskCompletionSource
+    internal new required TaskCompletionSource<T?> TaskCompletionSource
     {
         get => _value;
         init => base.TaskCompletionSource = _value = value;

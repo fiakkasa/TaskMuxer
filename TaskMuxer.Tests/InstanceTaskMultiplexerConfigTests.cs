@@ -24,7 +24,7 @@ public class InstanceTaskMultiplexerConfigTests
         var results = new List<ValidationResult>();
 
         Assert.False(Validator.TryValidateObject(obj, new(obj), results, true));
-        Assert.Single(results.Where(x => x.MemberNames.ToArray() is [nameof(InstanceTaskMultiplexerConfig.PreserveExecutionResultDuration)]));
+        Assert.Single(results, x => x.MemberNames.ToArray() is [nameof(InstanceTaskMultiplexerConfig.PreserveExecutionResultDuration)]);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class InstanceTaskMultiplexerConfigTests
         var results = new List<ValidationResult>();
 
         Assert.False(Validator.TryValidateObject(obj, new(obj), results, true));
-        Assert.Single(results.Where(x => x.MemberNames.ToArray() is [nameof(InstanceTaskMultiplexerConfig.ExecutionTimeout)]));
+        Assert.Single(results, x => x.MemberNames.ToArray() is [nameof(InstanceTaskMultiplexerConfig.ExecutionTimeout)]);
     }
 
     [Fact]
@@ -51,6 +51,6 @@ public class InstanceTaskMultiplexerConfigTests
         var results = new List<ValidationResult>();
 
         Assert.False(Validator.TryValidateObject(obj, new(obj), results, true));
-        Assert.Single(results.Where(x => x.MemberNames.ToArray() is [nameof(InstanceTaskMultiplexerConfig.LongRunningTaskExecutionTimeout)]));
+        Assert.Single(results, x => x.MemberNames.ToArray() is [nameof(InstanceTaskMultiplexerConfig.LongRunningTaskExecutionTimeout)]);
     }
 }
