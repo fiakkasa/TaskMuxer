@@ -16,17 +16,18 @@ Tasks are being identified / segmented by a key and their respective return type
 
 ### Current Releases
 
-| TaskMuxer Version | .NET Version |
-|-------------------|--------------|
-| 2.1.1             | .NET 8, 9    |
-| 2.1.0             | .NET 8, 9    |
-| 2.0.1             | .NET 8       |
-| 2.0.0             | .NET 7, 8    |
+| TaskMuxer Version | .NET Version  |
+| ----------------- | ------------- |
+| 3.0.0             | .NET 8, 9, 10 |
+| 2.1.1             | .NET 8, 9     |
+| 2.1.0             | .NET 8, 9     |
+| 2.0.1             | .NET 8        |
+| 2.0.0             | .NET 7, 8     |
 
 ### Past Releases
 
 | Last TaskMuxer Version | .NET Version |
-|------------------------|--------------|
+| ---------------------- | ------------ |
 | 1.0.13                 | .NET 7       |
 
 ## Note
@@ -225,4 +226,3 @@ await Task.WhenAll(
 ## Similar Projects
 
 - https://github.com/lundog/TaskMultiplexer
-
