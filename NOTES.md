@@ -11,23 +11,22 @@
 
 ## Tests
 
-📝 _The produced coverage.cobertura file is per .NET version ex. `coverage.cobertura.net9.0.xml`_
+📝 _The produced coverage.cobertura file is per .NET version ex. `coverage.cobertura.net10.0.xml`_
 
-- Run:
-  `dotnet test /p:CollectCoverage=true /p:Threshold=80 /p:CoverletOutputFormat=cobertura /p:CoverletOutput='../coverage.cobertura.xml'`
-- Report: `dotnet reportgenerator -reports:./coverage.cobertura.net9.0.xml -targetdir:./TestResults -reporttypes:Html`
+- Run: `dotnet test /p:CollectCoverage=true /p:Threshold=80 /p:CoverletOutputFormat=cobertura /p:CoverletOutput='../coverage.cobertura.xml'`
+- Report: `dotnet reportgenerator -reports:./coverage.cobertura.net10.0.xml -targetdir:./TestResults -reporttypes:Html`
 
 In one Go!
 
-```powershell
+```bash
 dotnet test /p:CollectCoverage=true /p:Threshold=80 /p:CoverletOutputFormat=cobertura /p:CoverletOutput='../coverage.cobertura.xml'
-dotnet reportgenerator -reports:./coverage.cobertura.net9.0.xml -targetdir:./TestResults -reporttypes:Html
+dotnet reportgenerator -reports:./coverage.cobertura.net10.0.xml -targetdir:./TestResults -reporttypes:Html
 ```
 
 ## Benchmarks
 
 - `cd TaskMuxer.Benchmarks`
-- `dotnet run -c Release --framework net9.0`
+- `dotnet run -c Release --framework net10.0`
 
 ## Info
 
