@@ -10,7 +10,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task ItemsCount_When_No_Items_Present_Returns_Zero() =>
-        Assert.Equal(0, await ServiceFactoryNoLogger.ItemsCount());
+        Assert.Equal(0, await ServiceFactoryNoLogger.ItemsCount(cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task ItemsCount_When_Items_Present_Returns_Count()
@@ -25,13 +25,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add(await service.ItemsCount());
-            })
+            }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.Equal(1, results.First());
@@ -39,7 +40,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task ItemKeys_When_No_Items_Present_Returns_Empty() =>
-        Assert.Empty(await ServiceFactoryNoLogger.ItemKeys());
+        Assert.Empty(await ServiceFactoryNoLogger.ItemKeys(cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task ItemKeys_When_Items_Present_Returns_Collection()
@@ -54,13 +55,15 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add((await service.ItemKeys()).First());
-            })
+            },
+            cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.Equal(new("items", typeof(int)), results.First());
@@ -68,7 +71,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Get_Task_Status_With_Key_When_Item_Does_Not_Exist_Returns_None() =>
-        Assert.Equal(ItemStatus.None, await ServiceFactoryNoLogger.GetTaskStatus<int>("status"));
+        Assert.Equal(ItemStatus.None, await ServiceFactoryNoLogger.GetTaskStatus<int>("status", cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Get_Task_Status_With_Key_When_Item_Exists_Returns_Status()
@@ -83,13 +86,15 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add(await service.GetTaskStatus<int>("status"));
-            })
+            },
+            cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.Equal(ItemStatus.Started, results.First());
@@ -97,7 +102,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Get_Task_Status_With_ItemKey_When_Item_Does_Not_Exist_Returns_None() =>
-        Assert.Equal(ItemStatus.None, await ServiceFactoryNoLogger.GetTaskStatus(new("status", typeof(int))));
+        Assert.Equal(ItemStatus.None, await ServiceFactoryNoLogger.GetTaskStatus(new("status", typeof(int)), cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Get_Task_Status_With_ItemKey_When_Item_Exists_Returns_Status()
@@ -112,13 +117,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add(await service.GetTaskStatus(new("status", typeof(int))));
-            })
+            }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.Equal(ItemStatus.Started, results.First());
@@ -126,7 +132,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Has_Task_When_With_Key_Item_Does_Not_Exist_Returns_False() =>
-        Assert.False(await ServiceFactoryNoLogger.HasTask<int>("has"));
+        Assert.False(await ServiceFactoryNoLogger.HasTask<int>("has", cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Has_Task_With_Key_When_Item_Exists_Returns_True()
@@ -141,13 +147,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add(await service.HasTask<int>("has"));
-            })
+            }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.True(results.First());
@@ -155,7 +162,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Has_Task_With_ItemKey_When_Item_Does_Not_Exist_Returns_False() =>
-        Assert.False(await ServiceFactoryNoLogger.HasTask(new("has", typeof(int))));
+        Assert.False(await ServiceFactoryNoLogger.HasTask(new("has", typeof(int)), cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Has_Task_With_ItemKey_When_Item_Exists_Returns_True()
@@ -170,13 +177,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add(await service.HasTask(new("has", typeof(int))));
-            })
+            }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.True(results.First());
@@ -184,7 +192,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Get_Task_With_Key_When_Item_Does_Not_Exist_Returns_Null() =>
-        Assert.Null(await ServiceFactoryNoLogger.GetTask<int>("get"));
+        Assert.Null(await ServiceFactoryNoLogger.GetTask<int>("get", cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Get_Task_With_Key_When_Item_Exists_Returns_Instance()
@@ -199,13 +207,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add(await service.GetTask<int>("get"));
-            })
+            }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.Single(results);
@@ -213,7 +222,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Get_Task_With_ItemKey_When_Item_Does_Not_Exist_Returns_Null() =>
-        Assert.Null(await ServiceFactoryNoLogger.GetTask<int>(new ItemKey("get", typeof(int))));
+        Assert.Null(await ServiceFactoryNoLogger.GetTask<int>(new ItemKey("get", typeof(int)), cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Get_Task_With_ItemKey_When_Item_Exists_Returns_Instance()
@@ -228,13 +237,15 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             ),
             Task.Run(async () =>
             {
                 await Task.Delay(250);
                 results.Add(await service.GetTask<int>(new ItemKey("get", typeof(int))));
-            })
+            },
+            cancellationToken: TestContext.Current.CancellationToken)
         );
 
         Assert.Single(results);
@@ -242,7 +253,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Cancel_Task_With_Key_When_Item_Does_Not_Exist_Returns_False() =>
-        Assert.False(await ServiceFactoryNoLogger.CancelTask<int>("cancel"));
+        Assert.False(await ServiceFactoryNoLogger.CancelTask<int>("cancel", cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Cancel_Task_With_Key_When_Item_Exists_Returns_True()
@@ -258,13 +269,14 @@ public class InstanceTaskMultiplexerTests
                     {
                         await Task.Delay(500, ct);
                         return true;
-                    }
+                    },
+                    cancellationToken: TestContext.Current.CancellationToken
                 ),
                 Task.Run(async () =>
                 {
                     await Task.Delay(250);
                     results.Add(await service.CancelTask<bool>("cancel"));
-                })
+                }, cancellationToken: TestContext.Current.CancellationToken)
             )
         );
 
@@ -273,7 +285,7 @@ public class InstanceTaskMultiplexerTests
 
     [Fact]
     public async Task Cancel_Task_With_ItemKey_When_Item_Does_Not_Exist_Returns_False() =>
-        Assert.False(await ServiceFactoryNoLogger.CancelTask<int>(new ItemKey("cancel", typeof(int))));
+        Assert.False(await ServiceFactoryNoLogger.CancelTask<int>(new ItemKey("cancel", typeof(int)), cancellationToken: TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Cancel_Task_With_ItemKey_When_Item_Exists_Returns_True()
@@ -289,13 +301,14 @@ public class InstanceTaskMultiplexerTests
                     {
                         await Task.Delay(500, ct);
                         return true;
-                    }
+                    },
+                    cancellationToken: TestContext.Current.CancellationToken
                 ),
                 Task.Run(async () =>
                 {
                     await Task.Delay(250);
                     results.Add(await service.CancelTask<bool>(new ItemKey("cancel", typeof(bool))));
-                })
+                }, cancellationToken: TestContext.Current.CancellationToken)
             )
         );
 
@@ -360,9 +373,12 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
+
+        await Task.Delay(500, cancellationToken: TestContext.Current.CancellationToken);
 
         var calls = logger.ReceivedCalls().ToList();
 
@@ -443,11 +459,12 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        await Task.Delay(500);
+        await Task.Delay(500, cancellationToken: TestContext.Current.CancellationToken);
 
         var calls = logger.ReceivedCalls().ToList();
 
@@ -526,7 +543,8 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -547,14 +565,15 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        await Task.Delay(500);
+        await Task.Delay(500, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
-        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await (await service.GetTask<int>(key, cancellationToken: TestContext.Current.CancellationToken))!);
         Assert.Equal(
             1,
             await service.AddTask(
@@ -563,13 +582,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 2;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        await Task.Delay(2_000);
+        await Task.Delay(2_000, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -592,14 +612,15 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        await Task.Delay(500);
+        await Task.Delay(500, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
-        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await (await service.GetTask<int>(key, cancellationToken: TestContext.Current.CancellationToken))!);
         Assert.Equal(
             1,
             await service.AddTask(
@@ -608,13 +629,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 2;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        await Task.Delay(2_000);
+        await Task.Delay(2_000, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -642,10 +664,10 @@ public class InstanceTaskMultiplexerTests
             )
         );
 
-        await Task.Delay(500);
+        await Task.Delay(500, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
-        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await (await service.GetTask<int>(key, cancellationToken: TestContext.Current.CancellationToken))!);
         Assert.Equal(
             1,
             await service.AddTask(
@@ -654,13 +676,14 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 2;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        await Task.Delay(2_000);
+        await Task.Delay(2_000, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -680,14 +703,15 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        await Task.Delay(500);
+        await Task.Delay(500, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key));
-        Assert.Equal(1, await (await service.GetTask<int>(key))!);
+        Assert.Equal(ItemStatus.Completed, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await (await service.GetTask<int>(key, cancellationToken: TestContext.Current.CancellationToken))!);
         Assert.Equal(
             1,
             await service.AddTask(
@@ -696,12 +720,13 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(250, ct);
                     return 2;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        Assert.True(await service.CancelTask<int>(key, true));
-        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key));
+        Assert.True(await service.CancelTask<int>(key, true, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(ItemStatus.None, await service.GetTaskStatus(key, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1049,7 +1074,8 @@ public class InstanceTaskMultiplexerTests
         await Assert.ThrowsAsync<Exception>(async () =>
             await ServiceFactoryNoLogger.AddTask<int>(
                 "exception",
-                _ => throw new Exception("Splash")
+                _ => throw new Exception("Splash"),
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1058,7 +1084,8 @@ public class InstanceTaskMultiplexerTests
         await Assert.ThrowsAsync<Exception>(async () =>
             await ServiceFactoryILogger.AddTask<int>(
                 "exception",
-                _ => throw new Exception("Splash")
+                _ => throw new Exception("Splash"),
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1075,11 +1102,13 @@ public class InstanceTaskMultiplexerTests
                         await Task.Delay(500, ct);
 
                         throw new Exception("Splash");
-                    }
+                    },
+                    cancellationToken: TestContext.Current.CancellationToken
                 ),
                 service.AddTask(
                     "exception",
-                    _ => Task.FromResult(1)
+                    _ => Task.FromResult(1),
+                    cancellationToken: TestContext.Current.CancellationToken
                 )
             );
         });
@@ -1129,7 +1158,8 @@ public class InstanceTaskMultiplexerTests
                     await Task.Delay(250, ct);
 
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1147,7 +1177,8 @@ public class InstanceTaskMultiplexerTests
                     await Task.Delay(1_000, ct);
 
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1167,7 +1198,8 @@ public class InstanceTaskMultiplexerTests
                     await Task.Delay(1_000, ct);
 
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1188,7 +1220,8 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(375, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1209,7 +1242,8 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(375, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1230,7 +1264,8 @@ public class InstanceTaskMultiplexerTests
                     await Task.Delay(1_000, ct);
 
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1251,7 +1286,8 @@ public class InstanceTaskMultiplexerTests
                     await Task.Delay(1_000, ct);
 
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
@@ -1277,12 +1313,13 @@ public class InstanceTaskMultiplexerTests
                         {
                             await Task.Delay(250);
                             service.Dispose();
-                        })
+                        },
+                        cancellationToken: TestContext.Current.CancellationToken)
                     )
             )
         );
 
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1311,12 +1348,13 @@ public class InstanceTaskMultiplexerTests
                         {
                             await Task.Delay(625);
                             service.Dispose();
-                        })
+                        },
+                        cancellationToken: TestContext.Current.CancellationToken)
                     )
             )
         );
 
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1332,7 +1370,8 @@ public class InstanceTaskMultiplexerTests
                 {
                     await Task.Delay(500, ct);
                     return 1;
-                }
+                },
+                cancellationToken: TestContext.Current.CancellationToken
             )
         );
     }
@@ -1343,6 +1382,6 @@ public class InstanceTaskMultiplexerTests
         var service = ServiceFactoryNoLogger;
         service.Dispose();
 
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => service.ItemKeys(cancellationToken: TestContext.Current.CancellationToken));
     }
 }
