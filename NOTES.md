@@ -26,7 +26,7 @@ dotnet reportgenerator -reports:./coverage.cobertura.net11.0.xml -targetdir:./Te
 ## Benchmarks
 
 - `cd TaskMuxer.Benchmarks`
-- `dotnet run -c Release --framework net11.0`
+- `dotnet run -c Release --framework net10.0`
 
 ## Info
 
