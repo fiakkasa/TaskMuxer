@@ -6,9 +6,39 @@ namespace TaskMuxer;
 
 public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
 {
+    private const string KEY = "Key";
+    private const string COUNT = "Count";
+    private const string TIMESTAMP = "Timestamp";
+    private const string MESSAGE = "Message";
+    private const string ITEM_ADDED_MESSAGE =
+        $$"""
+        Request with key {{{KEY}}} was added to the items list
+        Number of items in list: {{{COUNT}}}
+        """;
+    private const string ITEM_REMOVED_MESSAGE =
+        $$"""
+        Request with key {{{KEY}}} was removed from the items list
+        Number of items remaining in the list: {{{COUNT}}}
+        """;
+    private const string ITEM_ALREADY_PRESENT_MESSAGE =
+        $$"""Request with key {{{KEY}}} is already present in the items list and the existing instance will be returned instead""";
+    private const string ITEM_NOT_ADDED =
+        $$"""Request with key {{{KEY}}} was not added in the items list""";
+    private const string ITEM_STARTING_MESSAGE =
+        $$"""Request with key {{{KEY}}} is starting at {{{TIMESTAMP}}}""";
+    private const string ITEM_CANCELLED_MESSAGE =
+        $$"""Request with key {{{KEY}}}, was cancelled by {CancellationSource} cancellation source, with message: {{{MESSAGE}}}""";
+    private const string ITEM_FAILED_MESSAGE =
+        $$"""Request with key {{{KEY}}} failed with message: {{{MESSAGE}}}""";
+    private const string ITEM_COMPLETED_MESSAGE =
+        $$"""Request with key {{{KEY}}} has completed at {{{TIMESTAMP}}}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list""";
+    private const string ITEM_PRESERVE_MESSAGE =
+        $$"""Request with key {{{KEY}}} will be preserved for {PreserveExecutionResultDuration}""";
+
     private const int _evictionDelay = 250;
     private const int _defaultCollectionCapacity = 100;
     private const int _defaultConcurrency = 1;
+
     private readonly SemaphoreSlim _addSemaphore = new(_defaultConcurrency);
     private readonly InstanceTaskMultiplexerConfig? _config;
     private readonly ConcurrentDictionary<ItemKey, InstanceItem> _items;
@@ -174,14 +204,16 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
     {
         EnsureServiceable();
 
+#pragma warning disable S6966
         _addSemaphore.Wait(CancellationToken.None);
+#pragma warning restore
 
         if (GetItemTask<T>(key) is { } taskInstance)
         {
-            LogInformation(
-                "Request with key {Key} is already present in the items list and the existing instance will be returned instead",
-                key
-            );
+            if (_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                _logger.LogInformation(ITEM_ALREADY_PRESENT_MESSAGE, key);
+            }
 
             _addSemaphore.Release();
 
@@ -206,7 +238,10 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
 
         if (!Items.TryAdd(key, item))
         {
-            LogWarning(default, "Request with key {Key} was not added in the items list", key);
+            if (_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                _logger.LogWarning(ITEM_NOT_ADDED, key);
+            }
 
             DisposeOperation(
                 taskCompletionSource,
@@ -222,8 +257,10 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
 
         item.Status = ItemStatus.Added;
 
-        LogInformation("Request with key {Key} was added to the items list", key);
-        LogInformation("Number of items in list: {Count}", Items.Count);
+        if (_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            _logger.LogInformation(ITEM_ADDED_MESSAGE, key, Items.Count);
+        }
 
         _addSemaphore.Release();
 
@@ -241,6 +278,7 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
         return await taskCompletionSource.Task;
     }
 
+#pragma warning disable S107, S3776
     private void RunItemWorkflow<T>(
         ItemKey key,
         InstanceItem<T> item,
@@ -251,11 +289,16 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
         TimeSpan preserveExecutionResultDuration,
         CancellationTokenSource preserveExecutionResultCancellationTokenSource
     )
+#pragma warning restore
     {
         var startTimestamp = Stopwatch.GetTimestamp();
 
         item.Status = ItemStatus.Starting;
-        LogInformation("Request with key {Key} is starting at {Timestamp}", key, DateTimeOffset.UtcNow);
+
+        if (_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            _logger.LogInformation(ITEM_STARTING_MESSAGE, key, DateTimeOffset.UtcNow);
+        }
 
         Task.Run(async () =>
             {
@@ -269,17 +312,20 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
                 {
                     item.Status = ItemStatus.Canceled;
 
-                    LogWarning(
-                        ex,
-                        "Request with key {Key}, was cancelled by {CancellationSource} cancellation source, with message: {Message}",
-                        key,
-                        internalCancellationTokenSource.Token.IsCancellationRequested switch
-                        {
-                            true => "internal",
-                            _ => "external"
-                        },
-                        ex.Message
-                    );
+                    if (_logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        _logger.LogWarning(
+                           ex,
+                           ITEM_CANCELLED_MESSAGE,
+                           key,
+                           internalCancellationTokenSource.Token.IsCancellationRequested switch
+                           {
+                               true => "internal",
+                               _ => "external"
+                           },
+                           ex.Message
+                       );
+                    }
 
                     taskCompletionSource.SetCanceled(linkedCancellationTokenSource.Token);
                 }
@@ -287,42 +333,52 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
                 {
                     item.Status = ItemStatus.Failed;
 
-                    LogError(ex, "Request with key {Key} failed with message: {Message}", key, ex.Message);
+                    if (_logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        _logger.LogError(ex, ITEM_FAILED_MESSAGE, key, ex.Message);
+                    }
 
                     taskCompletionSource.SetException(ex);
                 }
 
-                LogInformation(
-                    "Request with key {Key} has completed at {Timestamp}, after {TimeElapsed}, {ResultSuccessStatus}, and will be removed from the items list",
-                    key,
-                    DateTimeOffset.UtcNow,
-                    Stopwatch.GetElapsedTime(startTimestamp),
-                    item.Status switch
-                    {
-                        ItemStatus.Completed => "successfully",
-                        _ => "unsuccessfully"
-                    }
-                );
+                if (_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    _logger.LogInformation(
+                       ITEM_COMPLETED_MESSAGE,
+                       key,
+                       DateTimeOffset.UtcNow,
+                       Stopwatch.GetElapsedTime(startTimestamp),
+                       item.Status switch
+                       {
+                           ItemStatus.Completed => "successfully",
+                           _ => "unsuccessfully"
+                       }
+                   );
+                }
 
                 if (item.Status == ItemStatus.Completed && preserveExecutionResultDuration > TimeSpan.Zero)
                 {
-                    LogInformation(
-                        "Request with key {Key} will be preserved for {PreserveExecutionResultDuration}",
-                        key,
-                        preserveExecutionResultDuration
-                    );
+                    if (_logger?.IsEnabled(LogLevel.Information) == true)
+                    {
+                        _logger.LogInformation(ITEM_PRESERVE_MESSAGE, key, preserveExecutionResultDuration);
+                    }
 
                     try
                     {
                         await Task.Delay(preserveExecutionResultDuration, preserveExecutionResultCancellationTokenSource.Token);
                     }
-                    catch { }
+                    catch
+                    {
+                        // ignore
+                    }
                 }
 
                 Items.TryRemove(key, out _);
 
-                LogInformation("Request with key {Key} was removed", key);
-                LogInformation("Number of items remaining in the list: {Count}", Items.Count);
+                if (_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    _logger.LogInformation(ITEM_REMOVED_MESSAGE, key, Items.Count);
+                }
 
                 DisposeOperation(
                     taskCompletionSource,
@@ -334,7 +390,9 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
             internalCancellationTokenSource.Token);
     }
 
+#pragma warning disable S1172
     private void Dispose(bool _)
+#pragma warning restore
     {
         if (!_serviceable) return;
 
@@ -353,15 +411,4 @@ public sealed class InstanceTaskMultiplexer : ITaskMultiplexer, IDisposable
     {
         Dispose(false);
     }
-
-#pragma warning disable CA2254
-    private void LogInformation(string? message, params object[] args) =>
-        _logger?.LogInformation(message, args);
-
-    private void LogWarning(Exception? exception, string? message, params object[] args) =>
-        _logger?.LogWarning(exception, message, args);
-
-    private void LogError(Exception? exception, string? message, params object[] args) =>
-        _logger?.LogError(exception, message, args);
-#pragma warning restore CA2254
 }

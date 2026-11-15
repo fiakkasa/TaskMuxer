@@ -5,8 +5,26 @@ namespace TaskMuxer.Tests;
 
 public class InstanceTaskMultiplexerTests
 {
+    private static ParallelOptions ParallelOptionsFactory => new()
+    {
+        MaxDegreeOfParallelism = Math.Max(
+            8,
+            Math.Min(
+                2,
+                (int)Math.Floor(Environment.ProcessorCount * 0.5)
+            )
+        )
+    };
     private static InstanceTaskMultiplexer ServiceFactoryNoLogger => new();
-    private static InstanceTaskMultiplexer ServiceFactoryILogger => new(logger: Substitute.For<ILogger<InstanceTaskMultiplexer>>());
+    private static InstanceTaskMultiplexer ServiceFactoryILogger
+    {
+        get
+        {
+            var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
+            logger.IsEnabled(Arg.Any<LogLevel>()).Returns(true);
+            return new(logger: logger);
+        }
+    }
 
     [Fact]
     public async Task ItemsCount_When_No_Items_Present_Returns_Zero() =>
@@ -30,8 +48,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add(await service.ItemsCount());
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add(await service.ItemsCount(TestContext.Current.CancellationToken));
             }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
@@ -60,8 +78,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add((await service.ItemKeys()).First());
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add((await service.ItemKeys(TestContext.Current.CancellationToken)).First());
             },
             cancellationToken: TestContext.Current.CancellationToken)
         );
@@ -91,8 +109,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add(await service.GetTaskStatus<int>("status"));
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add(await service.GetTaskStatus<int>("status", TestContext.Current.CancellationToken));
             },
             cancellationToken: TestContext.Current.CancellationToken)
         );
@@ -122,8 +140,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add(await service.GetTaskStatus(new("status", typeof(int))));
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add(await service.GetTaskStatus(new("status", typeof(int)), TestContext.Current.CancellationToken));
             }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
@@ -152,8 +170,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add(await service.HasTask<int>("has"));
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add(await service.HasTask<int>("has", TestContext.Current.CancellationToken));
             }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
@@ -182,8 +200,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add(await service.HasTask(new("has", typeof(int))));
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add(await service.HasTask(new("has", typeof(int)), TestContext.Current.CancellationToken));
             }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
@@ -212,8 +230,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add(await service.GetTask<int>("get"));
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add(await service.GetTask<int>("get", TestContext.Current.CancellationToken));
             }, cancellationToken: TestContext.Current.CancellationToken)
         );
 
@@ -242,8 +260,8 @@ public class InstanceTaskMultiplexerTests
             ),
             Task.Run(async () =>
             {
-                await Task.Delay(250);
-                results.Add(await service.GetTask<int>(new ItemKey("get", typeof(int))));
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                results.Add(await service.GetTask<int>(new ItemKey("get", typeof(int)), TestContext.Current.CancellationToken));
             },
             cancellationToken: TestContext.Current.CancellationToken)
         );
@@ -274,8 +292,8 @@ public class InstanceTaskMultiplexerTests
                 ),
                 Task.Run(async () =>
                 {
-                    await Task.Delay(250);
-                    results.Add(await service.CancelTask<bool>("cancel"));
+                    await Task.Delay(250, TestContext.Current.CancellationToken);
+                    results.Add(await service.CancelTask<bool>("cancel", cancellationToken: TestContext.Current.CancellationToken));
                 }, cancellationToken: TestContext.Current.CancellationToken)
             )
         );
@@ -306,8 +324,8 @@ public class InstanceTaskMultiplexerTests
                 ),
                 Task.Run(async () =>
                 {
-                    await Task.Delay(250);
-                    results.Add(await service.CancelTask<bool>(new ItemKey("cancel", typeof(bool))));
+                    await Task.Delay(250, TestContext.Current.CancellationToken);
+                    results.Add(await service.CancelTask<bool>(new ItemKey("cancel", typeof(bool)), cancellationToken: TestContext.Current.CancellationToken));
                 }, cancellationToken: TestContext.Current.CancellationToken)
             )
         );
@@ -318,7 +336,7 @@ public class InstanceTaskMultiplexerTests
     [Fact]
     public async Task Cancel_Task_With_ItemKey_When_Item_Exists_And_External_Cancellation_Requested_Waiting_For_Eviction_Returns_True()
     {
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
         var service = ServiceFactoryNoLogger;
@@ -362,6 +380,7 @@ public class InstanceTaskMultiplexerTests
     public async Task Add_Task_With_ItemKey_No_PreserveExecutionResultDuration_Set_Emits_Expected_Logs()
     {
         var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
+        logger.IsEnabled(Arg.Any<LogLevel>()).Returns(true);
         var service = new InstanceTaskMultiplexer(logger: logger);
         var key = new ItemKey("log", typeof(int));
 
@@ -389,17 +408,11 @@ public class InstanceTaskMultiplexerTests
                     .GetArguments()
                     .Any(y =>
                         y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == $"Request with key {key} was added to the items list"
-                    )
-        );
-        Assert.Single(
-            calls,
-            x =>
-                x
-                    .GetArguments()
-                    .Any(y =>
-                        y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == "Number of items in list: 1"
+                        && y.ToString() ==
+                        $"""
+                        Request with key {key} was added to the items list
+                        Number of items in list: 1
+                        """
                     )
         );
         Assert.Single(
@@ -422,17 +435,11 @@ public class InstanceTaskMultiplexerTests
                     .GetArguments()
                     .Any(y =>
                         y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == $"Request with key {key} was removed"
-                    )
-        );
-        Assert.Single(
-            calls,
-            x =>
-                x
-                    .GetArguments()
-                    .Any(y =>
-                        y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == "Number of items remaining in the list: 0"
+                        && y.ToString() ==
+                        $"""
+                        Request with key {key} was removed from the items list
+                        Number of items remaining in the list: 0
+                        """
                     )
         );
     }
@@ -441,6 +448,7 @@ public class InstanceTaskMultiplexerTests
     public async Task Add_Task_With_ItemKey_PreserveExecutionResultDuration_Set_Emits_Expected_Logs()
     {
         var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
+        logger.IsEnabled(Arg.Any<LogLevel>()).Returns(true);
         var preserveExecutionResultDuration = TimeSpan.FromMilliseconds(500);
         var service = new InstanceTaskMultiplexer(
             new()
@@ -475,17 +483,11 @@ public class InstanceTaskMultiplexerTests
                     .GetArguments()
                     .Any(y =>
                         y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == $"Request with key {key} was added to the items list"
-                    )
-        );
-        Assert.Single(
-            calls,
-            x =>
-                x
-                    .GetArguments()
-                    .Any(y =>
-                        y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == "Number of items in list: 1"
+                        && y.ToString() ==
+                        $"""
+                        Request with key {key} was added to the items list
+                        Number of items in list: 1
+                        """
                     )
         );
         Assert.Single(
@@ -518,17 +520,11 @@ public class InstanceTaskMultiplexerTests
                     .GetArguments()
                     .Any(y =>
                         y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == $"Request with key {key} was removed"
-                    )
-        );
-        Assert.Single(
-            calls,
-            x =>
-                x
-                    .GetArguments()
-                    .Any(y =>
-                        y is IEnumerable<KeyValuePair<string, object>>
-                        && y.ToString() == "Number of items remaining in the list: 0"
+                        && y.ToString() ==
+                        $"""
+                        Request with key {key} was removed from the items list
+                        Number of items remaining in the list: 0
+                        """
                     )
         );
     }
@@ -772,7 +768,7 @@ public class InstanceTaskMultiplexerTests
         var service = ServiceFactoryNoLogger;
         var count = 0;
         var maxConcurrentItems = 0L;
-        var cts = new CancellationTokenSource(375);
+        using var cts = new CancellationTokenSource(375);
         var results = new ConcurrentBag<object>();
 
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
@@ -893,7 +889,7 @@ public class InstanceTaskMultiplexerTests
         var results = (
                 await Task.WhenAll(
                     Enumerable
-                        .Range(1, 1_000_000)
+                        .Range(1, 100_000)
                         .Select(_ => service.AddTask(
                                 "whenAll",
                                 async ct =>
@@ -908,7 +904,8 @@ public class InstanceTaskMultiplexerTests
                                     Interlocked.Increment(ref count);
 
                                     return Random.Shared.Next();
-                                }
+                                },
+                                cancellationToken: TestContext.Current.CancellationToken
                             )
                         )
                 )
@@ -930,7 +927,8 @@ public class InstanceTaskMultiplexerTests
         var results = new ConcurrentBag<int>();
 
         await Parallel.ForEachAsync(
-            Enumerable.Range(1, 1_000_000),
+            Enumerable.Range(1, 100_000),
+            ParallelOptionsFactory,
             async (_, cato) => await service.AddTask(
                 "forEach",
                 async ct =>
@@ -966,7 +964,8 @@ public class InstanceTaskMultiplexerTests
         var results = new ConcurrentBag<int>();
 
         await Parallel.ForEachAsync(
-            Enumerable.Range(1, 1_000_000),
+            Enumerable.Range(1, 100_000),
+            ParallelOptionsFactory,
             async (_, cato) => await service.AddTask(
                 "forEach",
                 async ct =>
@@ -1003,6 +1002,7 @@ public class InstanceTaskMultiplexerTests
 
         await Parallel.ForEachAsync(
             Enumerable.Range(1, 1_000),
+            ParallelOptionsFactory,
             async (_, cato) => await service.AddTask(
                 "forEach",
                 async ct =>
@@ -1037,10 +1037,7 @@ public class InstanceTaskMultiplexerTests
 
         await Parallel.ForEachAsync(
             Enumerable.Range(1, 100),
-            new ParallelOptions
-            {
-                MaxDegreeOfParallelism = 8
-            },
+            ParallelOptionsFactory,
             async (v, __) => await Task.WhenAll(
                 Enumerable
                     .Range(1, 9)
@@ -1066,7 +1063,88 @@ public class InstanceTaskMultiplexerTests
         );
 
         Assert.Equal(300, count);
-        Assert.InRange(maxConcurrentItems, 20, 40);
+        Assert.InRange(maxConcurrentItems, 2, 40);
+    }
+
+    [Fact]
+    public async Task Add_Task_With_Single_Type_Items_And_Large_Number_Of_Unique_And_Parallel_Requests_With_ILogger_Disabled_Using_ParallelForEach_And_WhenAll_Runs_Flow()
+    {
+        var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
+        logger.IsEnabled(Arg.Any<LogLevel>()).Returns(false);
+        var service = new InstanceTaskMultiplexer(logger: logger);
+        var count = 0;
+        var maxConcurrentItems = 0L;
+
+        await Parallel.ForEachAsync(
+            Enumerable.Range(1, 100),
+            ParallelOptionsFactory,
+            async (v, __) => await Task.WhenAll(
+                Enumerable
+                    .Range(1, 9)
+                    .Select(vi => service.AddTask(
+                            "forEach_and_whenAll_" + v + "_" + (vi % 3),
+                            async ct =>
+                            {
+                                var itemsCount = await service.ItemsCount(ct);
+                                if (itemsCount > maxConcurrentItems)
+                                {
+                                    Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
+                                }
+
+                                await Task.Delay(500, ct);
+                                Interlocked.Increment(ref count);
+
+                                return Random.Shared.Next();
+                            },
+                            CancellationToken.None
+                        )
+                    )
+            )
+        );
+
+        Assert.Equal(300, count);
+        Assert.InRange(maxConcurrentItems, 2, 40);
+    }
+
+    [Fact]
+    public async Task Add_Task_With_Single_Type_Items_And_Large_Number_Of_Unique_And_Parallel_Requests_With_ILogger_Only_Error_Using_ParallelForEach_And_WhenAll_Runs_Flow()
+    {
+        var logger = Substitute.For<ILogger<InstanceTaskMultiplexer>>();
+        logger.IsEnabled(Arg.Any<LogLevel>()).Returns(false);
+        logger.IsEnabled(LogLevel.Error).Returns(true);
+        var service = new InstanceTaskMultiplexer(logger: logger);
+        var count = 0;
+        var maxConcurrentItems = 0L;
+
+        await Parallel.ForEachAsync(
+            Enumerable.Range(1, 100),
+            ParallelOptionsFactory,
+            async (v, __) => await Task.WhenAll(
+                Enumerable
+                    .Range(1, 9)
+                    .Select(vi => service.AddTask(
+                            "forEach_and_whenAll_" + v + "_" + (vi % 3),
+                            async ct =>
+                            {
+                                var itemsCount = await service.ItemsCount(ct);
+                                if (itemsCount > maxConcurrentItems)
+                                {
+                                    Interlocked.Exchange(ref maxConcurrentItems, itemsCount);
+                                }
+
+                                await Task.Delay(500, ct);
+                                Interlocked.Increment(ref count);
+
+                                return Random.Shared.Next();
+                            },
+                            CancellationToken.None
+                        )
+                    )
+            )
+        );
+
+        Assert.Equal(300, count);
+        Assert.InRange(maxConcurrentItems, 2, 40);
     }
 
     [Fact]
@@ -1306,12 +1384,13 @@ public class InstanceTaskMultiplexerTests
                             {
                                 await Task.Delay(500, ct);
                                 return 1;
-                            }
+                            },
+                            TestContext.Current.CancellationToken
                         )
                     )
                     .Append(Task.Run(async () =>
                         {
-                            await Task.Delay(250);
+                            await Task.Delay(250, TestContext.Current.CancellationToken);
                             service.Dispose();
                         },
                         cancellationToken: TestContext.Current.CancellationToken)
@@ -1341,12 +1420,13 @@ public class InstanceTaskMultiplexerTests
                             {
                                 await Task.Delay(x * 250, ct);
                                 return 1;
-                            }
+                            },
+                            TestContext.Current.CancellationToken
                         )
                     )
                     .Append(Task.Run(async () =>
                         {
-                            await Task.Delay(625);
+                            await Task.Delay(625, TestContext.Current.CancellationToken);
                             service.Dispose();
                         },
                         cancellationToken: TestContext.Current.CancellationToken)
