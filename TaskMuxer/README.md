@@ -18,6 +18,7 @@ Tasks are being identified / segmented by a key and their respective return type
 
 | TaskMuxer Version | .NET Version  |
 | ----------------- | ------------- |
+| 4.0.0             | .NET 10, 11   |
 | 3.0.0             | .NET 8, 9, 10 |
 | 2.1.1             | .NET 8, 9     |
 | 2.1.0             | .NET 8, 9     |
